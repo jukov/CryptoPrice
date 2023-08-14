@@ -1,16 +1,31 @@
 package ui
 
 import domain.TickerRepository
+import domain.model.Instrument
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-import java.math.BigDecimal
+import kotlinx.coroutines.launch
 
 class TickerViewModel(
     private val repository: TickerRepository
 ) {
 
-    suspend fun observePrice(): Flow<BigDecimal> =
+    private var scope = CoroutineScope(Dispatchers.IO)
+
+    suspend fun observePrice(): Flow<Instrument> =
         repository.observeInstrument()
-            .map { it.price }
+
+    fun subscribe(symbol: String) {
+        scope.launch {
+            repository.subscribe(symbol)
+        }
+    }
+
+    fun unsubscribe(symbol: String) {
+        scope.launch {
+            repository.unsubscribe(symbol)
+        }
+    }
 
 }

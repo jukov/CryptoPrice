@@ -6,8 +6,9 @@ import kotlinx.coroutines.flow.Flow
 
 interface TickerRepository {
 
-    fun observeIncrement(): Flow<Int>
-
     suspend fun observeInstrument(): Flow<Instrument>
 
+    suspend fun subscribe(symbol: String)
+
+    suspend fun unsubscribe(symbols: String)
 }

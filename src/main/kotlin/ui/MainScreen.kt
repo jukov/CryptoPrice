@@ -1,5 +1,6 @@
 package ui
 
+import kotlinx.coroutines.runBlocking
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.Dimension
@@ -28,11 +29,11 @@ class MainScreen(
     init {
         initUi()
 
-//        runBlocking {
-//            viewModel.observePrice().collect { price ->
-//                tickerScreen.setPrice(price)
-//            }
-//        }
+        runBlocking {
+            viewModel.observePrice().collect { instrument ->
+                tickers[instrument.symbol]?.setPrice(instrument.price)
+            }
+        }
     }
 
     private fun initUi() {
@@ -48,6 +49,8 @@ class MainScreen(
         newTickerTextFieldBox.add(newTickerTextField)
 
         newTickerLabel.text = "Ticker name"
+
+        newTickerTextField.text = "XBTUSD"
 
         newTickerButton.maximumSize = Dimension(newTickerButton.width, Int.MAX_VALUE)
         newTickerButton.text = "Add Ticker"
@@ -80,11 +83,14 @@ class MainScreen(
         tickerPanel.add(ticker.component)
 
         frame.pack()
+
+        viewModel.subscribe(symbol)
     }
 
     private fun removeTicker(symbol: String) {
         val ticker = tickers.remove(symbol) ?: return
         tickerPanel.remove(ticker.component)
+        viewModel.unsubscribe(symbol)
         frame.pack()
     }
 

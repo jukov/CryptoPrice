@@ -6,13 +6,15 @@ import domain.model.Instrument
 import io.ktor.client.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.websocket.*
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.serialization.json.Json
 import toBigDecimalOrNull
 
 class TickerRepositoryImpl : TickerRepository {
+
+    private val instrumentUpdateFlow = MutableSharedFlow<Instrument>()
 
     private val client = HttpClient {
         install(WebSockets)
@@ -22,28 +24,73 @@ class TickerRepositoryImpl : TickerRepository {
         ignoreUnknownKeys = true
     }
 
-    override fun observeIncrement(): Flow<Int> = flow {
-        for (i in 0..1_000_000) {
-            emit(i)
-            delay(1000L)
+    private val observingSymbols = HashSet<String>()
+
+    private var webSocketSessionJob: Job? = null
+    private var webSocketSession: DefaultClientWebSocketSession? = null
+    private val isWebsocketStarted: Boolean
+        get() = webSocketSession != null
+
+    override suspend fun observeInstrument(): Flow<Instrument> = instrumentUpdateFlow
+
+    override suspend fun subscribe(symbol: String) {
+        observingSymbols += symbol
+
+        if (!isWebsocketStarted) {
+            startAndSubscribe()
+        } else {
+            TODO()
+//            subscribe()
         }
     }
 
-    override suspend fun observeInstrument(): Flow<Instrument> = flow {
-        client.webSocket("wss://ws.bitmex.com/realtime?subscribe=instrument:XBTUSD") {
-            try {
-                for (message in incoming) {
-                    message as? Frame.Text ?: continue
-                    val text = message.readText()
-                    println("New message: $text")
-                    val instrument = decodeInstrument(text)?.data?.firstOrNull()?.toModel()
-                    instrument?.let {
-                        emit(it)
+    private suspend fun startAndSubscribe() {
+        if (webSocketSessionJob != null) error("WebSocket already opened")
+        if (webSocketSession != null) error("WebSocket already opened")
+
+        val job = Job()
+        webSocketSessionJob = job
+
+        withContext(Dispatchers.IO + job) {
+            launch {
+                if (webSocketSession != null) error("WebSocket already opened")
+
+                val instrumentsToObserve = observingSymbols.map { "instrument:$it" }.joinToString(separator = ",")
+
+                try {
+                    val session = client.webSocketSession("$WEBSOCKET_URL?$ARG_SUBSCRIBE=$instrumentsToObserve")
+                    webSocketSession = session
+
+                    for (message in session.incoming) {
+                        withContext(Dispatchers.Default + job) {
+                            handleMessage(message)
+                        }
                     }
+                } catch (e: Exception) {
+                    System.err.println("Error while receiving: " + e.localizedMessage)
                 }
-            } catch (e: Exception) {
-                println("Error while receiving: " + e.localizedMessage)
             }
+        }
+    }
+
+    private suspend fun handleMessage(message: Frame) {
+        if (message !is Frame.Text) return
+        val text = message.readText()
+        println("New message: $text")
+        val instrument = decodeInstrument(text)?.data?.firstOrNull()?.toModel()
+        instrument?.let {
+            instrumentUpdateFlow.emit(it)
+        }
+    }
+
+    override suspend fun unsubscribe(symbols: String) {
+        observingSymbols -= symbols
+
+        if (observingSymbols.isEmpty()) {
+            webSocketSession?.close(CloseReason(CloseReason.Codes.NORMAL, "Closed by user"))
+            webSocketSessionJob?.cancel("All instruments are unsubscribed")
+            webSocketSessionJob = null
+            webSocketSession = null
         }
     }
 
@@ -51,7 +98,7 @@ class TickerRepositoryImpl : TickerRepository {
         return try {
             json.decodeFromString<InstrumentListDto>(text)
         } catch (e: Throwable) {
-            println(e)
+//            println(e)
             null
         }
     }
@@ -61,5 +108,10 @@ class TickerRepositoryImpl : TickerRepository {
             symbol ?: return null,
             fairPrice.toBigDecimalOrNull() ?: return null
         )
+    }
+
+    companion object {
+        private const val WEBSOCKET_URL = "wss://ws.bitmex.com/realtime"
+        private const val ARG_SUBSCRIBE = "subscribe"
     }
 }
