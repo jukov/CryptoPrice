@@ -7,7 +7,6 @@ import SLTop
 import kotlinx.coroutines.runBlocking
 import java.awt.Component
 import java.awt.Font
-import java.util.concurrent.atomic.AtomicInteger
 import javax.swing.*
 
 class TickerScreen(
@@ -17,14 +16,12 @@ class TickerScreen(
     private val button: JButton = JButton()
     private val label: JLabel = JLabel("", SwingConstants.CENTER)
 
-    private var value = AtomicInteger()
-
     init {
         runBlocking {
             initUi()
 
-            viewModel.observeIncrement().collect {
-                label.text = value.incrementAndGet().toString()
+            viewModel.observePrice().collect { price ->
+                label.text = price.toPlainString()
             }
         }
     }
@@ -45,7 +42,7 @@ class TickerScreen(
         frame.isResizable = false
 
         label.font = Font("Arial", 0, 50)
-        label.text = value.toString()
+        label.text = "-"
         label.alignmentX = Component.CENTER_ALIGNMENT
 
         button.text = "Increment"
@@ -53,8 +50,10 @@ class TickerScreen(
         button.alignmentX = Component.CENTER_ALIGNMENT
 
         button.addActionListener {
-            label.text = value.incrementAndGet().toString()
+            TODO()
         }
+
+        button.isEnabled = false
 
         layout.putConstraint(SLLeft, label, 8, SLLeft, contentPane)
         layout.putConstraint(SLRight, label, -8, SLRight, contentPane)
