@@ -1,71 +1,50 @@
 package ui
 
-import SLBottom
-import SLLeft
-import SLRight
-import SLTop
-import kotlinx.coroutines.runBlocking
 import java.awt.Component
 import java.awt.Font
-import javax.swing.*
+import java.math.BigDecimal
+import javax.swing.Box
+import javax.swing.JButton
+import javax.swing.JLabel
+import javax.swing.SwingConstants
 
 class TickerScreen(
-    private val viewModel: TickerViewModel
+    val symbol: String,
+    val onDeactivateClickListener: (symbol: String) -> Unit
 ) {
-    private val frame: JFrame = JFrame()
-    private val button: JButton = JButton()
-    private val label: JLabel = JLabel("", SwingConstants.CENTER)
+
+    private val box = Box.createVerticalBox()
+    private val deactivateButton = JButton()
+    private val tickerSymbolLabel = JLabel("", SwingConstants.CENTER)
+    private val tickerPriceLabel = JLabel("", SwingConstants.CENTER)
+
+    val component: Component = box
 
     init {
-        runBlocking {
-            initUi()
+        box.add(Box.createVerticalGlue())
+        box.add(tickerSymbolLabel)
+        box.add(tickerPriceLabel)
+        box.add(Box.createVerticalGlue())
+        box.add(deactivateButton)
 
-            viewModel.observePrice().collect { price ->
-                label.text = price.toPlainString()
-            }
+        tickerSymbolLabel.font = Font("Arial", 0, 30)//TODO system font
+        tickerSymbolLabel.text = symbol
+        tickerSymbolLabel.alignmentX = Component.CENTER_ALIGNMENT
+
+        tickerPriceLabel.font = Font("Arial", 0, 50)
+        tickerPriceLabel.text = "-"
+        tickerPriceLabel.alignmentX = Component.CENTER_ALIGNMENT
+
+        deactivateButton.text = "Deactivate"
+        deactivateButton.font = Font("Arial", 0, 30)
+        deactivateButton.alignmentX = Component.CENTER_ALIGNMENT
+
+        deactivateButton.addActionListener {
+            onDeactivateClickListener(symbol)
         }
     }
 
-    private fun initUi() {
-        val layout = SpringLayout()
-        frame.layout = layout
-        val contentPane = frame.contentPane
-        contentPane.add(label)
-        contentPane.add(button)
-
-        //        frame.pack()
-        //        frame.contentPane = panel
-        frame.setSize(300, 300)
-        frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
-        frame.title = "Increment"
-        frame.isVisible = true
-        frame.isResizable = false
-
-        label.font = Font("Arial", 0, 50)
-        label.text = "-"
-        label.alignmentX = Component.CENTER_ALIGNMENT
-
-        button.text = "Increment"
-        button.font = Font("Arial", 0, 30)
-        button.alignmentX = Component.CENTER_ALIGNMENT
-
-        button.addActionListener {
-            TODO()
-        }
-
-        button.isEnabled = false
-
-        layout.putConstraint(SLLeft, label, 8, SLLeft, contentPane)
-        layout.putConstraint(SLRight, label, -8, SLRight, contentPane)
-        layout.putConstraint(SLTop, label, 8, SLTop, contentPane)
-        layout.putConstraint(SLBottom, label, 8, SLTop, button)
-        layout.putConstraint(SLLeft, button, 8, SLLeft, contentPane)
-        layout.putConstraint(SLRight, button, -8, SLRight, contentPane)
-        layout.putConstraint(SLBottom, button, -8, SLBottom, contentPane)
-        //        layout.putConstraint(SLTop, button, 8, SpringLayout.SOUTH, label)
-
-        //        frame.pack()
+    fun setPrice(price: BigDecimal) {
+        tickerPriceLabel.text = price.toPlainString()
     }
-
-
 }

@@ -1,9 +1,9 @@
 import data.TickerRepositoryImpl
-import ui.TickerScreen
+import ui.MainScreen
 import ui.TickerViewModel
 
 fun main(args: Array<String>) {
-    TickerScreen(
+    MainScreen(
         TickerViewModel(
             TickerRepositoryImpl()
         )
