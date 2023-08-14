@@ -24,26 +24,23 @@ class TickerRepositoryImpl(
         observingSymbols += symbol
 
         if (!websocket.isWebsocketStarted) {
-            connectAndSubscribe()
+            val instrumentsToObserve = observingSymbols.map { "instrument:$it" }.joinToString(separator = ",")
+
+            websocket.connect("${dataConfig.wsUrl}?$ARG_SUBSCRIBE=$instrumentsToObserve") { message ->
+                handleMessage(message)
+            }
         } else {
-            TODO()
-//            subscribe()
+            websocket.send("{\"op\": \"subscribe\", \"args\": [\"instrument:$symbol\"]}")
         }
     }
 
-    private suspend fun connectAndSubscribe() {
-        val instrumentsToObserve = observingSymbols.map { "instrument:$it" }.joinToString(separator = ",")
-
-        websocket.connect("${dataConfig.wsUrl}?$ARG_SUBSCRIBE=$instrumentsToObserve") { message ->
-            handleMessage(message)
-        }
-    }
-
-    override suspend fun unsubscribe(symbols: String) {
-        observingSymbols -= symbols
+    override suspend fun unsubscribe(symbol: String) {
+        observingSymbols -= symbol
 
         if (observingSymbols.isEmpty()) {
             websocket.disconnect()
+        } else {
+            websocket.send("{\"op\": \"unsubscribe\", \"args\": [\"instrument:$symbol\"]}")
         }
     }
 

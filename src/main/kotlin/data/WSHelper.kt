@@ -41,6 +41,14 @@ class WSHelper(
         }
     }
 
+    suspend fun send(message: String) {
+        val webSocketSession = webSocketSession
+        require(webSocketSession != null) { "Attempt to send message to inactive websocket" }
+
+        println("Send message: $message")
+        webSocketSession.send(message)
+    }
+
     suspend fun disconnect() {
         withContext(Dispatchers.IO) {
             webSocketSession?.close(CloseReason(CloseReason.Codes.NORMAL, "Closed by user"))

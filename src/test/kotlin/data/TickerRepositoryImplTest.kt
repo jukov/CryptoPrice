@@ -33,6 +33,44 @@ class TickerRepositoryImplTest {
     }
 
     @Test
+    fun `subscribe twice`() = runTest {
+        every { wsHelper.isWebsocketStarted } returns false
+        coEvery { wsHelper.connect(any(), any()) } returns Unit
+        coEvery { wsHelper.send(any()) } returns Unit
+
+        repository.subscribe(testInstrument)
+
+        every { wsHelper.isWebsocketStarted } returns true
+
+        repository.subscribe(testInstrument2)
+
+        coVerify(exactly = 1) { wsHelper.connect("$testUrl?$ARG_SUBSCRIBE=instrument:$testInstrument", any()) }
+        coVerify(exactly = 1) { wsHelper.send("{\"op\": \"subscribe\", \"args\": [\"instrument:$testInstrument2\"]}") }
+    }
+
+    @Test
+    fun `subscribe twice and unsubscribe`() = runTest {
+        every { wsHelper.isWebsocketStarted } returns false
+        coEvery { wsHelper.connect(any(), any()) } returns Unit
+        coEvery { wsHelper.send(any()) } returns Unit
+        coEvery { wsHelper.disconnect() } returns Unit
+
+        repository.subscribe(testInstrument)
+
+        every { wsHelper.isWebsocketStarted } returns true
+
+        repository.subscribe(testInstrument2)
+
+        repository.unsubscribe(testInstrument)
+        repository.unsubscribe(testInstrument2)
+
+        coVerify(exactly = 1) { wsHelper.connect("$testUrl?$ARG_SUBSCRIBE=instrument:$testInstrument", any()) }
+        coVerify(exactly = 1) { wsHelper.send("{\"op\": \"subscribe\", \"args\": [\"instrument:$testInstrument2\"]}") }
+        coVerify(exactly = 1) { wsHelper.send("{\"op\": \"unsubscribe\", \"args\": [\"instrument:$testInstrument\"]}") }
+        coVerify(exactly = 1) { wsHelper.disconnect() }
+    }
+
+    @Test
     fun `unsubscribed from ws`() = runTest {
         every { wsHelper.isWebsocketStarted } returns false
         coEvery { wsHelper.connect(any(), any()) } returns Unit
@@ -48,5 +86,6 @@ class TickerRepositoryImplTest {
     companion object {
         val testUrl = "https://aboba.com/"
         val testInstrument = "DOGEUSDT"
+        val testInstrument2 = "PEPEUSDT"
     }
 }
