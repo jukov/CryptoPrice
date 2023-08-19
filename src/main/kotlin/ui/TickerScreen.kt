@@ -1,6 +1,7 @@
 package ui
 
 import java.awt.Component
+import java.awt.Dimension
 import java.awt.Font
 import java.math.BigDecimal
 import javax.swing.Box
@@ -21,6 +22,8 @@ class TickerScreen(
     val component: Component = box
 
     init {
+        box.setSize(200, 200);
+        box.minimumSize = Dimension(200, 200);
         box.add(Box.createVerticalGlue())
         box.add(tickerSymbolLabel)
         box.add(tickerPriceLabel)

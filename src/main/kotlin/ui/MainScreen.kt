@@ -6,7 +6,6 @@ import java.awt.Component
 import java.awt.Dimension
 import java.awt.GridLayout
 import javax.swing.*
-import kotlin.math.max
 
 class MainScreen(
     private val viewModel: TickerViewModel
@@ -35,6 +34,8 @@ class MainScreen(
             }
         }
     }
+    //TODO add ticker immediatly
+    //TODO long deactivate
 
     private fun initUi() {
         val pane = frame.contentPane
@@ -60,7 +61,7 @@ class MainScreen(
             newTickerTextField.text?.let(::addTicker)
         }
 
-        frame.setSize(300, 300)
+        frame.setSize(200, 250)
         frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
         frame.title = "Crypto Price"
         frame.isVisible = true
@@ -72,26 +73,30 @@ class MainScreen(
         if (tickers.containsKey(symbol)) return
 
         val ticker = TickerScreen(symbol, onTickerDisconnect)
-        tickers.put(symbol, ticker)
-
-        val column = tickers.size / MAX_COLUMNS
-        val row = tickers.size.rem(MAX_COLUMNS)
-
-        tickerLayout.columns = max(tickerLayout.columns, column)
-        tickerLayout.rows = max(tickerLayout.rows, row)
+        tickers[symbol] = ticker
 
         tickerPanel.add(ticker.component)
 
-        frame.pack()
+        adjustGrid()
 
         viewModel.subscribe(symbol)
+    }
+
+    private fun adjustGrid() {
+        val row = 1 + (tickers.size - 1) / MAX_ROWS
+        val column = tickers.size.coerceAtMost(MAX_COLUMNS)
+
+        tickerLayout.columns = column
+        tickerLayout.rows = row
+
+        frame.setSize(column * 200, newTickerBox.height + row * 200)
     }
 
     private fun removeTicker(symbol: String) {
         val ticker = tickers.remove(symbol) ?: return
         tickerPanel.remove(ticker.component)
+        adjustGrid()
         viewModel.unsubscribe(symbol)
-        frame.pack()
     }
 
     companion object {
