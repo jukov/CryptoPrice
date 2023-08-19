@@ -1,10 +1,5 @@
 import java.math.BigDecimal
 
-val SLLeft: String = "West"
-val SLRight: String = "East"
-val SLTop: String = "North"
-val SLBottom: String = "South"
-
 fun Double?.toBigDecimalOrNull(): BigDecimal? {
     this ?: return null
     return try {
@@ -13,3 +8,12 @@ fun Double?.toBigDecimalOrNull(): BigDecimal? {
         null
     }
 }
+
+inline fun <T> Iterable<T>.editIf(condition: (T) -> Boolean, transform: (T) -> T): List<T> =
+    map {
+        if (condition(it)) {
+            transform(it)
+        } else {
+            it
+        }
+    }

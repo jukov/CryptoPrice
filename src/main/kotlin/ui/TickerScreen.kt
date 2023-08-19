@@ -3,7 +3,6 @@ package ui
 import java.awt.Component
 import java.awt.Dimension
 import java.awt.Font
-import java.math.BigDecimal
 import javax.swing.Box
 import javax.swing.JButton
 import javax.swing.JLabel
@@ -47,7 +46,7 @@ class TickerScreen(
         }
     }
 
-    fun setPrice(price: BigDecimal) {
-        tickerPriceLabel.text = price.toPlainString()
+    fun setPrice(price: String) {
+        tickerPriceLabel.text = price
     }
 }
