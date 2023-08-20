@@ -56,7 +56,6 @@ class TickerRepositoryImpl(
         return try {
             json.decodeFromString<InstrumentListDto>(text)
         } catch (e: Throwable) {
-//            println(e)
             null
         }
     }

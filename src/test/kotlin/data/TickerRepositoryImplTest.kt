@@ -8,12 +8,15 @@ import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
+import org.slf4j.Logger
 
 class TickerRepositoryImplTest {
 
     private val dataConfig = DataConfig(wsUrl = testUrl)
     private val wsHelper: WSHelper = mockk<WSHelper>()
+    private val logger: Logger = mockk<Logger>()
     private val repository = TickerRepositoryImpl(
+        logger,
         dataConfig,
         wsHelper,
         Json {

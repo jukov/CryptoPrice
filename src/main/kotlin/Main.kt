@@ -18,7 +18,8 @@ fun main() {
                     wsUrl = "wss://ws.bitmex.com/realtime"
                 ),
                 websocket = WSHelper(
-                    HttpClient {
+                    logger = Logging,
+                    httpClient = HttpClient {
                         install(WebSockets)
                     }
                 ),

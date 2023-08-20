@@ -6,8 +6,10 @@ import io.ktor.websocket.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.slf4j.Logger
 
 class WSHelper(
+    private val logger: Logger,
     private val httpClient: HttpClient
 ) {
     private var webSocketSession: DefaultClientWebSocketSession? = null
@@ -30,12 +32,12 @@ class WSHelper(
                         for (message in session.incoming) {
                             if (message !is Frame.Text) continue
                             val text = message.readText()
-                            println("New message: $text")
+                            logger.info("New message: $text")
                             messageListener(text)
                         }
                     }
                 } catch (e: Exception) {
-                    System.err.println("Error while receiving: " + e.localizedMessage)
+                    logger.error("Error while receiving", e)
                 }
             }
         }
@@ -45,7 +47,7 @@ class WSHelper(
         val webSocketSession = webSocketSession
         require(webSocketSession != null) { "Attempt to send message to inactive websocket" }
 
-        println("Send message: $message")
+        logger.info("Send message: $message")
         webSocketSession.send(message)
     }
 
