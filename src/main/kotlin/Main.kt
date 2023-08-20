@@ -8,7 +8,7 @@ import ui.MainScreen
 import ui.TickerViewModel
 import util.Logging
 
-fun main(args: Array<String>) {
+fun main() {
     MainScreen(
         TickerViewModel(
             logger = Logging,

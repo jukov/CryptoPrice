@@ -21,8 +21,8 @@ class TickerScreen(
     val component: Component = box
 
     init {
-        box.setSize(200, 200);
-        box.minimumSize = Dimension(200, 200);
+        box.setSize(200, 200)
+        box.minimumSize = Dimension(200, 200)
         box.add(Box.createVerticalGlue())
         box.add(tickerSymbolLabel)
         box.add(tickerPriceLabel)
