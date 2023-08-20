@@ -46,9 +46,13 @@ class TickerViewModel(
     }
 
     fun subscribe(symbol: String) {
+        logger.error("Subscribe start")
         scope.launch {
+            logger.error("Subscribe start in coroutine")
             addInstrument(symbol)
+            logger.error("Instrument added")
             repository.subscribe(symbol)
+            logger.error("Subscribed")
         }
     }
 
@@ -73,7 +77,7 @@ class TickerViewModel(
         val currentModel = modelFlow.value
         modelFlow.emit(
             currentModel.copy(
-                tickers = currentModel.tickers.filter { it.symbol == symbol }
+                tickers = currentModel.tickers.filter { it.symbol != symbol }
             )
         )
     }

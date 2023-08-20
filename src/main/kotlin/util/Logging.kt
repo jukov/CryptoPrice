@@ -9,6 +9,8 @@ import java.util.*
 
 object Logging : Logger {
 
+    private val severity = Level.Debug
+
     override fun getName(): String = "Logger"
 
     override fun isTraceEnabled(): Boolean = true
@@ -194,9 +196,11 @@ object Logging : Logger {
     }
 
     private fun printLog(level: Level, message: String?, where: PrintStream = System.out) {
-        where.println(
-            "${localDateFormat.get().format(Date())} [${level.label}]: $message"
-        )
+        if (severity.value >= level.value) {
+            where.println(
+                "${localDateFormat.get().format(Date())} [${level.label}]: $message"
+            )
+        }
     }
 
     private val localDateFormat =
@@ -206,12 +210,12 @@ object Logging : Logger {
             }
         }
 
-    private enum class Level(val label: String) {
-        Trace("TRACE"),
-        Info("INFO"),
-        Debug("DEBUG"),
-        Warn("WARN"),
-        Error("ERROR")
+    private enum class Level(val label: String, val value: Int) {
+        Trace("TRACE", 4),
+        Info("INFO", 3),
+        Debug("DEBUG", 2),
+        Warn("WARN", 1),
+        Error("ERROR", 0)
     }
 }
 

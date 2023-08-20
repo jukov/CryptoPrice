@@ -10,7 +10,8 @@ import util.Logging
 
 fun main() {
     MainScreen(
-        TickerViewModel(
+        logger = Logging,
+        viewModel = TickerViewModel(
             logger = Logging,
             repository = TickerRepositoryImpl(
                 logger = Logging,

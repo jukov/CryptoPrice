@@ -1,6 +1,7 @@
 package ui
 
 import kotlinx.coroutines.runBlocking
+import org.slf4j.Logger
 import ui.model.TickersUiModel
 import java.awt.BorderLayout
 import java.awt.Component
@@ -9,6 +10,7 @@ import java.awt.GridLayout
 import javax.swing.*
 
 class MainScreen(
+    private val logger: Logger,
     private val viewModel: TickerViewModel
 ) {
     private val frame = JFrame()
@@ -53,8 +55,6 @@ class MainScreen(
             }
         }
     }
-    //TODO add ticker immediatly
-    //TODO long deactivate
 
     private fun initUi() {
         val pane = frame.contentPane
@@ -97,29 +97,33 @@ class MainScreen(
 
         adjustGrid()
 
+        tickerPanel.revalidate()
+
         viewModel.subscribe(symbol)
     }
 
     private fun adjustGrid() {
-        val row = 1 + (tickers.size - 1) / MAX_ROWS
         val column = tickers.size.coerceAtMost(MAX_COLUMNS)
+        val row = 1 + (tickers.size - 1) / MAX_COLUMNS
 
         tickerLayout.columns = column
         tickerLayout.rows = row
 
         frame.setSize(column * TICKER_SIZE, newTickerBox.height + row * TICKER_SIZE)
+        logger.info("Grid adjusted to $row rows and $column columns")
     }
 
     private fun removeTicker(symbol: String) {
         val ticker = tickers.remove(symbol) ?: return
         tickerPanel.remove(ticker.component)
         adjustGrid()
+        tickerPanel.revalidate()
         viewModel.unsubscribe(symbol)
     }
 
     companion object {
-        const val MAX_ROWS = 4
-        const val MAX_COLUMNS = 4
+        const val MAX_ROWS = 3
+        const val MAX_COLUMNS = 5
         const val MAX_TICKERS = MAX_ROWS * MAX_COLUMNS
         const val TICKER_SIZE = 200
     }
