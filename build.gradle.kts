@@ -18,6 +18,8 @@ dependencies {
     implementation("io.ktor:ktor-client-websockets:${libs.versions.ktor.get()}")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${libs.versions.serialization.get()}")
 
+    implementation("org.slf4j:slf4j-api:2.0.7")
+
     testImplementation("io.ktor:ktor-client-mock:${libs.versions.ktor.get()}")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:${libs.versions.coroutines.get()}")
     testImplementation("org.jetbrains.kotlin:kotlin-test:${libs.versions.kotlin.get()}")

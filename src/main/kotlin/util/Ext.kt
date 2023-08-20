@@ -1,3 +1,5 @@
+package util
+
 import java.math.BigDecimal
 
 fun Double?.toBigDecimalOrNull(): BigDecimal? {

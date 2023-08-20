@@ -6,9 +6,11 @@ import domain.model.Instrument
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.serialization.json.Json
-import toBigDecimalOrNull
+import org.slf4j.Logger
+import util.toBigDecimalOrNull
 
 class TickerRepositoryImpl(
+    private val logger: Logger,
     private val dataConfig: DataConfig,
     private val websocket: WSHelper,
     private val json: Json

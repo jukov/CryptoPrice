@@ -2,16 +2,18 @@ package ui
 
 import domain.TickerRepository
 import domain.model.Instrument
-import editIf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import org.slf4j.Logger
 import ui.model.InstrumentUiModel
 import ui.model.TickersUiModel
+import util.editIf
 
 class TickerViewModel(
+    private val logger: Logger,
     private val repository: TickerRepository
 ) {
 

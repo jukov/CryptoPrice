@@ -6,20 +6,23 @@ import io.ktor.client.plugins.websocket.*
 import kotlinx.serialization.json.Json
 import ui.MainScreen
 import ui.TickerViewModel
+import util.Logging
 
 fun main(args: Array<String>) {
     MainScreen(
         TickerViewModel(
-            TickerRepositoryImpl(
-                DataConfig(
+            logger = Logging,
+            repository = TickerRepositoryImpl(
+                logger = Logging,
+                dataConfig = DataConfig(
                     wsUrl = "wss://ws.bitmex.com/realtime"
                 ),
-                WSHelper(
-                    HttpClient() {
+                websocket = WSHelper(
+                    HttpClient {
                         install(WebSockets)
                     }
                 ),
-                Json {
+                json = Json {
                     coerceInputValues = true
                     ignoreUnknownKeys = true
                 }
