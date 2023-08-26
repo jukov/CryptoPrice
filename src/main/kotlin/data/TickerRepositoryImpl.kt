@@ -1,14 +1,13 @@
 package data
 
 import data.model.ExchangeInfoDto
-import data.model.MiniTickerDto
+import data.model.TickerDto
 import domain.TickerRepository
 import domain.model.Instrument
 import domain.model.InstrumentUpdate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.serialization.json.Json
-import java.math.RoundingMode
 import java.util.concurrent.atomic.AtomicInteger
 
 class TickerRepositoryImpl(
@@ -29,7 +28,7 @@ class TickerRepositoryImpl(
     override suspend fun subscribe(symbol: String) {
         observingSymbols += symbol
 
-        val streamName = "${symbol.lowercase()}@miniTicker"
+        val streamName = "${symbol.lowercase()}@ticker"
 
         if (!websocket.isWebsocketStarted) {
             websocket.connect("${dataConfig.wsUrl}/ws/$streamName") { message ->
@@ -48,7 +47,7 @@ class TickerRepositoryImpl(
         if (observingSymbols.isEmpty()) {
             websocket.disconnect()
         } else {
-            val streamName = "${symbol.lowercase()}@miniTicker"
+            val streamName = "${symbol.lowercase()}@ticker"
 
             websocket.send("{\"method\": \"UNSUBSCRIBE\",\"params\":[\"$streamName\"],\"id\": ${wsId.getAndIncrement()}}")
         }
@@ -60,9 +59,9 @@ class TickerRepositoryImpl(
         instrument?.let { instrumentUpdateFlow.emit(it) }
     }
 
-    private fun decodeInstrument(text: String): MiniTickerDto? {
+    private fun decodeInstrument(text: String): TickerDto? {
         return try {
-            json.decodeFromString<MiniTickerDto>(text)
+            json.decodeFromString<TickerDto>(text)
         } catch (e: Throwable) {
             null
         }
@@ -96,12 +95,10 @@ class TickerRepositoryImpl(
         )
     }
 
-    private fun MiniTickerDto.toModel(): InstrumentUpdate? {
-        high ?: return null
-        low ?: return null
+    private fun TickerDto.toModel(): InstrumentUpdate? {
         return InstrumentUpdate(
             symbol = symbol ?: return null,
-            price = (high.toBigDecimal() + low.toBigDecimal()).divide("2".toBigDecimal(), RoundingMode.HALF_EVEN)
+            price = lastPrice?.toBigDecimal() ?: return null
         )
     }
 
