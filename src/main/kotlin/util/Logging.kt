@@ -9,7 +9,7 @@ import java.util.*
 
 object Logging : Logger {
 
-    private val severity = Level.Debug
+    private val severity = Level.Trace
 
     override fun getName(): String = "Logger"
 

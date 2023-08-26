@@ -1,7 +1,7 @@
 
 package ui.model
 
-data class InstrumentUiModel(
+data class ObservingInstrumentItem(
     val symbol: String,
     val price: String
 )

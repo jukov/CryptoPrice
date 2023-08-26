@@ -1,4 +1,5 @@
 import data.DataConfig
+import data.RestHelper
 import data.TickerRepositoryImpl
 import data.WSHelper
 import io.ktor.client.*
@@ -9,25 +10,34 @@ import ui.TickerViewModel
 import util.Logging
 
 fun main() {
+    val httpClient = HttpClient {
+        install(WebSockets)
+    }
+    val dataConfig = DataConfig(
+        wsUrl = "wss://ws.bitmex.com/realtime",
+        restUrl = "https://www.bitmex.com/api/v1"
+    )
+    val json = Json {
+        coerceInputValues = true
+        ignoreUnknownKeys = true
+    }
     MainScreen(
         logger = Logging,
         viewModel = TickerViewModel(
             logger = Logging,
             repository = TickerRepositoryImpl(
-                logger = Logging,
-                dataConfig = DataConfig(
-                    wsUrl = "wss://ws.bitmex.com/realtime"
-                ),
+                dataConfig = dataConfig,
                 websocket = WSHelper(
                     logger = Logging,
-                    httpClient = HttpClient {
-                        install(WebSockets)
-                    }
+                    httpClient = httpClient
                 ),
-                json = Json {
-                    coerceInputValues = true
-                    ignoreUnknownKeys = true
-                }
+                rest = RestHelper(
+                    logger = Logging,
+                    httpClient = httpClient,
+                    dataConfig = dataConfig,
+                    json = json
+                ),
+                json = json
             )
         )
     )

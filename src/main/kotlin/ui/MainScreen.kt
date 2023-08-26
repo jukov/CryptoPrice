@@ -1,8 +1,12 @@
 package ui
 
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.swing.Swing
 import org.slf4j.Logger
-import ui.model.TickersUiModel
+import ui.model.InstrumentPickerItem
+import ui.model.ObservingInstrumentsModel
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.Dimension
@@ -13,13 +17,18 @@ class MainScreen(
     private val logger: Logger,
     private val viewModel: TickerViewModel
 ) {
+    //TODO start in center of screen
+    //TODO ticker styling
+    //TODO header styling
+    private val scope = CoroutineScope(Dispatchers.Swing)
+
     private val frame = JFrame()
     private val newTickerBox = Box.createHorizontalBox()
     private val newTickerTextFieldBox = Box.createVerticalBox()
     private val tickerPanel = JPanel()
     private val newTickerButton = JButton("Add Ticker")
     private val newTickerLabel = JLabel("Ticker name")
-    private val newTickerTextField = JTextField()
+    private val newTickerComboBox = JComboBox<InstrumentPickerItem>()
     private val hintLabel = JLabel(
         "<html><div style='text-align: center;'>No tickers. Type ticker name and press \"Add Ticker\"</html>",
         SwingConstants.CENTER
@@ -35,14 +44,25 @@ class MainScreen(
     init {
         initUi()
 
-        runBlocking {
+        scope.launch {
+            viewModel.getAvailableSymbols().await().let { instruments ->
+                instruments.forEach {
+                    newTickerComboBox.addItem(it)
+                }
+                if (instruments.isNotEmpty()) {
+                    newTickerComboBox.selectedItem = instruments.first()
+                }
+            }
+        }
+
+        scope.launch {
             viewModel.observeModel().collect { model ->
                 setModel(model)
             }
         }
     }
 
-    private fun setModel(model: TickersUiModel) {
+    private fun setModel(model: ObservingInstrumentsModel) {
         if (model.tickers.isEmpty()) {
             frame.contentPane.remove(tickerPanel)
             frame.contentPane.add(hintLabel, BorderLayout.CENTER)
@@ -66,18 +86,26 @@ class MainScreen(
         newTickerBox.add(newTickerButton)
         newTickerBox.add(newTickerTextFieldBox)
         newTickerTextFieldBox.add(newTickerLabel)
-        newTickerTextFieldBox.add(newTickerTextField)
+        newTickerTextFieldBox.add(newTickerComboBox)
 
         hintLabel.alignmentX = Component.CENTER_ALIGNMENT
 
-        newTickerTextField.text = "XBTUSD"
+        newTickerComboBox.isEditable = true
+//        newTickerComboBox.addItemListener { e ->
+//            if (e.stateChange == ItemEvent.SELECTED) {
+//
+//            }
+//        }
 
         newTickerButton.maximumSize = Dimension(newTickerButton.width, Int.MAX_VALUE)
         newTickerButton.alignmentY = Component.CENTER_ALIGNMENT
         newTickerButton.alignmentX = Component.CENTER_ALIGNMENT
 
         newTickerButton.addActionListener {
-            newTickerTextField.text?.let(::addTicker)
+            when (val item = newTickerComboBox.selectedItem) {
+                is InstrumentPickerItem -> addTicker(item.symbol)
+                is String -> addTicker(item)
+            }
         }
 
         frame.setSize(TICKER_SIZE, 250)

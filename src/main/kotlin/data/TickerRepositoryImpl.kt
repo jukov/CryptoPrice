@@ -1,18 +1,18 @@
 package data
 
-import data.model.InstrumentListDto
+import data.model.InstrumentListDtoItem
+import data.model.InstrumentPriceListDto
 import domain.TickerRepository
 import domain.model.Instrument
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.serialization.json.Json
-import org.slf4j.Logger
 import util.toBigDecimalOrNull
 
 class TickerRepositoryImpl(
-    private val logger: Logger,
     private val dataConfig: DataConfig,
     private val websocket: WSHelper,
+    private val rest: RestHelper,
     private val json: Json
 ) : TickerRepository {
 
@@ -20,7 +20,7 @@ class TickerRepositoryImpl(
 
     private val observingSymbols = HashSet<String>()
 
-    override suspend fun observeInstrument(): Flow<Instrument> = instrumentUpdateFlow
+    override suspend fun observeInstruments(): Flow<Instrument> = instrumentUpdateFlow
 
     override suspend fun subscribe(symbol: String) {
         observingSymbols += symbol
@@ -52,20 +52,32 @@ class TickerRepositoryImpl(
         instrument?.let { instrumentUpdateFlow.emit(it) }
     }
 
-    private fun decodeInstrument(text: String): InstrumentListDto? {
+    private fun decodeInstrument(text: String): InstrumentPriceListDto? {
         return try {
-            json.decodeFromString<InstrumentListDto>(text)
+            json.decodeFromString<InstrumentPriceListDto>(text)
         } catch (e: Throwable) {
             null
         }
     }
 
-    private fun InstrumentListDto.InstrumentDto.toModel(): Instrument? {
+    private fun InstrumentPriceListDto.InstrumentDto.toModel(): Instrument? {
         return Instrument(
+            "",//TODO provide name
             symbol ?: return null,
             fairPrice.toBigDecimalOrNull() ?: return null
         )
     }
+
+    private fun InstrumentListDtoItem.toModel(): Instrument? {
+        return Instrument(
+            "$underlying/$quoteCurrency",
+            symbol?.filter { it != '_' } ?: return null,
+            null
+        )
+    }
+
+    override suspend fun getInstrumentList(): List<Instrument> =
+        rest.getInstrumentList().mapNotNull { it.toModel() }
 
     companion object {
         const val ARG_SUBSCRIBE = "subscribe"

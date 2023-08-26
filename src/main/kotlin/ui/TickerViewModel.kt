@@ -2,14 +2,13 @@ package ui
 
 import domain.TickerRepository
 import domain.model.Instrument
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.launch
 import org.slf4j.Logger
-import ui.model.InstrumentUiModel
-import ui.model.TickersUiModel
+import ui.model.InstrumentPickerItem
+import ui.model.ObservingInstrumentItem
+import ui.model.ObservingInstrumentsModel
 import util.editIf
 
 class TickerViewModel(
@@ -20,18 +19,19 @@ class TickerViewModel(
     private var scope = CoroutineScope(Dispatchers.IO)
 
     init {
+        //todo is it not working after screen close?
         scope.launch {
-            repository.observeInstrument().collect { newInstrument ->
+            repository.observeInstruments().collect { newInstrument ->
                 setNewPrice(newInstrument)
             }
         }
     }
 
     private val modelFlow = MutableStateFlow(
-        TickersUiModel(tickers = emptyList())
+        ObservingInstrumentsModel(tickers = emptyList())
     )
 
-    fun observeModel(): Flow<TickersUiModel> = modelFlow
+    fun observeModel(): Flow<ObservingInstrumentsModel> = modelFlow
 
     private suspend fun setNewPrice(newInstrument: Instrument) {
         val currentModel = modelFlow.value
@@ -39,7 +39,7 @@ class TickerViewModel(
             currentModel.copy(
                 tickers = currentModel.tickers.editIf(
                     { it.symbol == newInstrument.symbol },
-                    { it.copy(price = newInstrument.price.toPlainString()) }
+                    { it.copy(price = newInstrument.price?.toPlainString() ?: PRICE_EMPTY) }
                 )
             )
         )
@@ -61,7 +61,7 @@ class TickerViewModel(
         modelFlow.emit(
             currentModel.copy(
                 tickers = currentModel.tickers.toMutableList()
-                    .apply { add(InstrumentUiModel(symbol, PRICE_EMPTY)) }
+                    .apply { add(ObservingInstrumentItem(symbol, PRICE_EMPTY)) }
             )
         )
     }
@@ -81,6 +81,18 @@ class TickerViewModel(
             )
         )
     }
+
+    suspend fun getAvailableSymbols(): Deferred<List<InstrumentPickerItem>> =
+        scope.async {
+            repository.getInstrumentList()
+                .map {
+                    InstrumentPickerItem(
+                        it.name,
+                        it.symbol
+                    )
+                }
+        }
+
 
     companion object {
         private const val PRICE_EMPTY = "-"

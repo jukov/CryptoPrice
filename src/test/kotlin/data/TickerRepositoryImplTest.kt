@@ -12,13 +12,17 @@ import org.slf4j.Logger
 
 class TickerRepositoryImplTest {
 
-    private val dataConfig = DataConfig(wsUrl = testUrl)
+    private val dataConfig = DataConfig(
+        wsUrl = testWsUrl,
+        restUrl = testRestUrl
+    )
     private val wsHelper: WSHelper = mockk<WSHelper>()
+    private val restHelper: RestHelper = mockk<RestHelper>()
     private val logger: Logger = mockk<Logger>()
     private val repository = TickerRepositoryImpl(
-        logger,
         dataConfig,
         wsHelper,
+        restHelper,
         Json {
             coerceInputValues = true
             ignoreUnknownKeys = true
@@ -32,7 +36,7 @@ class TickerRepositoryImplTest {
 
         repository.subscribe(testInstrument)
 
-        coVerify(exactly = 1) { wsHelper.connect("$testUrl?$ARG_SUBSCRIBE=instrument:$testInstrument", any()) }
+        coVerify(exactly = 1) { wsHelper.connect("$testWsUrl?$ARG_SUBSCRIBE=instrument:$testInstrument", any()) }
     }
 
     @Test
@@ -47,7 +51,7 @@ class TickerRepositoryImplTest {
 
         repository.subscribe(testInstrument2)
 
-        coVerify(exactly = 1) { wsHelper.connect("$testUrl?$ARG_SUBSCRIBE=instrument:$testInstrument", any()) }
+        coVerify(exactly = 1) { wsHelper.connect("$testWsUrl?$ARG_SUBSCRIBE=instrument:$testInstrument", any()) }
         coVerify(exactly = 1) { wsHelper.send("{\"op\": \"subscribe\", \"args\": [\"instrument:$testInstrument2\"]}") }
     }
 
@@ -67,7 +71,7 @@ class TickerRepositoryImplTest {
         repository.unsubscribe(testInstrument)
         repository.unsubscribe(testInstrument2)
 
-        coVerify(exactly = 1) { wsHelper.connect("$testUrl?$ARG_SUBSCRIBE=instrument:$testInstrument", any()) }
+        coVerify(exactly = 1) { wsHelper.connect("$testWsUrl?$ARG_SUBSCRIBE=instrument:$testInstrument", any()) }
         coVerify(exactly = 1) { wsHelper.send("{\"op\": \"subscribe\", \"args\": [\"instrument:$testInstrument2\"]}") }
         coVerify(exactly = 1) { wsHelper.send("{\"op\": \"unsubscribe\", \"args\": [\"instrument:$testInstrument\"]}") }
         coVerify(exactly = 1) { wsHelper.disconnect() }
@@ -82,12 +86,15 @@ class TickerRepositoryImplTest {
         repository.subscribe(testInstrument)
         repository.unsubscribe(testInstrument)
 
-        coVerify(exactly = 1) { wsHelper.connect("$testUrl?$ARG_SUBSCRIBE=instrument:$testInstrument", any()) }
+        coVerify(exactly = 1) { wsHelper.connect("$testWsUrl?$ARG_SUBSCRIBE=instrument:$testInstrument", any()) }
         coVerify(exactly = 1) { wsHelper.disconnect() }
     }
 
+
+
     companion object {
-        val testUrl = "https://aboba.com/"
+        val testWsUrl = "https://wss.aboba.com/"
+        val testRestUrl = "https://rest.aboba.com/"
         val testInstrument = "DOGEUSDT"
         val testInstrument2 = "PEPEUSDT"
     }
