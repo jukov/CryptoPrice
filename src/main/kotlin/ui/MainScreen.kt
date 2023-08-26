@@ -7,8 +7,13 @@ import kotlinx.coroutines.swing.Swing
 import org.slf4j.Logger
 import ui.model.InstrumentPickerItem
 import ui.model.ObservingInstrumentsModel
-import java.awt.*
-import javax.swing.*
+import java.awt.BorderLayout
+import java.awt.Component
+import java.awt.GridLayout
+import javax.swing.JFrame
+import javax.swing.JLabel
+import javax.swing.JPanel
+import javax.swing.SwingConstants
 
 class MainScreen(
     private val logger: Logger,
@@ -18,18 +23,15 @@ class MainScreen(
     private val scope = CoroutineScope(Dispatchers.Swing)
 
     private val frame = JFrame()
-    private val newTickerPanel = JPanel()
     private val tickerPanel = JPanel()
-    private val newTickerButton = JButton("Add Ticker")
-    private val newTickerComboBox = JComboBox<InstrumentPickerItem>()
     private val hintLabel = JLabel(
         "<html><div style='text-align: center;'>No tickers. Type ticker name and press \"Add Ticker\"</html>",
         SwingConstants.CENTER
     )
-    private val newTickerLayout = GridBagLayout()
     private val tickerLayout = GridLayout(1, 1)
 
     private val tickers = HashMap<String, TickerScreen>()
+    private val newTickerScreen = NewTickerScreen(::addTicker)
 
     private val onTickerDisconnect = { symbol: String ->
         removeTicker(symbol)
@@ -40,16 +42,7 @@ class MainScreen(
 
         scope.launch {
             viewModel.getAvailableSymbols().await().let { instruments ->
-                newTickerComboBox.removeAllItems()
-                instruments.forEach {
-                    newTickerComboBox.addItem(it)
-                }
-                if (instruments.isNotEmpty()) {
-                    newTickerButton.isEnabled = true
-                    newTickerComboBox.isEnabled = true
-                    newTickerComboBox.selectedItem = instruments.first()
-                }
-                newTickerPanel.revalidate()
+                newTickerScreen.setInstruments(instruments)
             }
         }
 
@@ -75,42 +68,17 @@ class MainScreen(
     }
 
     private fun initUi() {
+        newTickerScreen.initUi()
+
         val pane = frame.contentPane
-        pane.add(newTickerPanel, BorderLayout.PAGE_START)
         pane.add(hintLabel, BorderLayout.CENTER)
+        pane.add(newTickerScreen.component, BorderLayout.PAGE_START)
 
         tickerPanel.layout = tickerLayout
-        newTickerPanel.layout = newTickerLayout
-
-        newTickerPanel.add(newTickerButton, GridBagConstraints().apply {
-            gridx = 0
-            gridy = 0
-            weightx = 1.0
-            fill = GridBagConstraints.HORIZONTAL
-        })
-        newTickerPanel.add(newTickerComboBox, GridBagConstraints().apply {
-            gridx = 0
-            gridy = 1
-            weightx = 1.0
-            fill = GridBagConstraints.HORIZONTAL
-        })
-
-        newTickerComboBox.addItem(LOADING_ITEM)
-        newTickerComboBox.isEnabled = false
 
         hintLabel.alignmentX = Component.CENTER_ALIGNMENT
 
-        newTickerButton.maximumSize = Dimension(newTickerButton.width, Int.MAX_VALUE)
-        newTickerButton.alignmentY = Component.CENTER_ALIGNMENT
-        newTickerButton.alignmentX = Component.CENTER_ALIGNMENT
-        newTickerButton.isEnabled = false
-
-        newTickerButton.addActionListener {
-            (newTickerComboBox.selectedItem as? InstrumentPickerItem)
-                ?.let(::addTicker)
-        }
-
-        frame.setSize(TICKER_SIZE, TICKER_SIZE + 50)
+        frame.setSize(TICKER_SIZE, TICKER_SIZE + NEW_TICKER_SIZE)
         frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
         frame.isResizable = false
         frame.setLocationRelativeTo(null)
@@ -146,7 +114,7 @@ class MainScreen(
             tickerLayout.columns = column
             tickerLayout.rows = row
 
-            frame.setSize(column * TICKER_SIZE, newTickerPanel.height + row * TICKER_SIZE)
+            frame.setSize(column * TICKER_SIZE, NEW_TICKER_SIZE + row * TICKER_SIZE)
             logger.info("Grid adjusted to $row rows and $column columns")
         }
     }
@@ -160,15 +128,10 @@ class MainScreen(
     }
 
     companion object {
-        const val MAX_ROWS = 3
-        const val MAX_COLUMNS = 4
-        const val MAX_TICKERS = MAX_ROWS * MAX_COLUMNS
-        const val TICKER_SIZE = 220
-        private val LOADING_ITEM = InstrumentPickerItem(
-            "Loading instruments...", "",
-            "",
-            "",
-            0
-        )
+        private const val MAX_ROWS = 3
+        private const val MAX_COLUMNS = 4
+        private const val MAX_TICKERS = MAX_ROWS * MAX_COLUMNS
+        private const val TICKER_SIZE = 220
+        private const val NEW_TICKER_SIZE = 60
     }
 }
