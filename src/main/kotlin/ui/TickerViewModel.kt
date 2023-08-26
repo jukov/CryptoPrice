@@ -91,6 +91,7 @@ class TickerViewModel(
                         it.symbol
                     )
                 }
+                .sortedBy { it.name }
         }
 
 

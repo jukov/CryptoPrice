@@ -1,13 +1,14 @@
 package data
 
-import data.model.InstrumentListDtoItem
-import data.model.InstrumentPriceListDto
+import data.model.ExchangeInfoDto
+import data.model.MiniTickerDto
 import domain.TickerRepository
 import domain.model.Instrument
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.serialization.json.Json
-import util.toBigDecimalOrNull
+import java.math.RoundingMode
+import java.util.concurrent.atomic.AtomicInteger
 
 class TickerRepositoryImpl(
     private val dataConfig: DataConfig,
@@ -15,6 +16,8 @@ class TickerRepositoryImpl(
     private val rest: RestHelper,
     private val json: Json
 ) : TickerRepository {
+
+    private val wsId = AtomicInteger(1)
 
     private val instrumentUpdateFlow = MutableSharedFlow<Instrument>()
 
@@ -25,14 +28,16 @@ class TickerRepositoryImpl(
     override suspend fun subscribe(symbol: String) {
         observingSymbols += symbol
 
-        if (!websocket.isWebsocketStarted) {
-            val instrumentsToObserve = observingSymbols.map { "instrument:$it" }.joinToString(separator = ",")
+        val streamName = "${symbol.lowercase()}@miniTicker"
 
-            websocket.connect("${dataConfig.wsUrl}?$ARG_SUBSCRIBE=$instrumentsToObserve") { message ->
+        if (!websocket.isWebsocketStarted) {
+            websocket.connect("${dataConfig.wsUrl}/ws/$streamName") { message ->
                 handleMessage(message)
             }
         } else {
-            websocket.send("{\"op\": \"subscribe\", \"args\": [\"instrument:$symbol\"]}")
+            websocket.send(
+                "{\"method\": \"SUBSCRIBE\",\"params\":[\"$streamName\"],\"id\": ${wsId.getAndIncrement()}}"
+            )
         }
     }
 
@@ -42,58 +47,63 @@ class TickerRepositoryImpl(
         if (observingSymbols.isEmpty()) {
             websocket.disconnect()
         } else {
-            websocket.send("{\"op\": \"unsubscribe\", \"args\": [\"instrument:$symbol\"]}")
+            val streamName = "${symbol.lowercase()}@miniTicker"
+
+            websocket.send("{\"method\": \"UNSUBSCRIBE\",\"params\":[\"$streamName\"],\"id\": ${wsId.getAndIncrement()}}")
         }
     }
 
     private suspend fun handleMessage(message: String) {
-        val instrument = decodeInstrument(message)?.data?.firstOrNull()?.toModel()
+        val instrument = decodeInstrument(message)?.toModel()
 
         instrument?.let { instrumentUpdateFlow.emit(it) }
     }
 
-    private fun decodeInstrument(text: String): InstrumentPriceListDto? {
+    private fun decodeInstrument(text: String): MiniTickerDto? {
         return try {
-            json.decodeFromString<InstrumentPriceListDto>(text)
+            json.decodeFromString<MiniTickerDto>(text)
         } catch (e: Throwable) {
             null
         }
     }
 
-    private fun InstrumentPriceListDto.InstrumentDto.toModel(): Instrument? {
-        return Instrument(
-            "",//TODO provide name
-            symbol ?: return null,
-            fairPrice.toBigDecimalOrNull() ?: return null
-        )
-    }
-
-    private fun InstrumentListDtoItem.toModel(): Instrument? {
-        return Instrument(
-            "$underlying/$quoteCurrency",
-            symbol?.filter { it != '_' } ?: return null,
-            null
-        )
-    }
-
     override suspend fun getInstrumentList(): List<Instrument> {
         return try {
             val response = rest.get(
-                dataConfig.restUrl + "/instrument",
+                dataConfig.restUrl + "/api/v3/exchangeInfo",
             ) {
-                parameters.append("filter", "{\"typ\": \"IFXXXP\"}")
-                parameters.append("columns", "[\"symbol\",\"underlying\",\"quoteCurrency\"]")
-                parameters.append("count", 500.toString())
+                parameters.append("permissions", "SPOT")
             }
 
-            json.decodeFromString<List<InstrumentListDtoItem>>(response)
-                .mapNotNull { it.toModel() }
+            json.decodeFromString<ExchangeInfoDto>(response).symbols
+                ?.mapNotNull { it?.toModel() }
+                ?: emptyList() //TODO error
         } catch (e: Exception) {
             emptyList()
         }
     }
 
-        companion object {
-            const val ARG_SUBSCRIBE = "subscribe"
-        }
+    private fun ExchangeInfoDto.Symbol.toModel(): Instrument? {
+        baseAsset ?: return null
+        quoteAsset ?: return null
+        return Instrument(
+            name = "$baseAsset/$quoteAsset",
+            symbol = symbol ?: return null,
+            price = null
+        )
     }
+
+    private fun MiniTickerDto.toModel(): Instrument? {
+        high ?: return null
+        low ?: return null
+        return Instrument(
+            name = symbol ?: return null,
+            symbol = symbol,
+            price = (high.toBigDecimal() + low.toBigDecimal()).divide("2".toBigDecimal(), RoundingMode.HALF_EVEN)
+        )
+    }
+
+    companion object {
+        const val ARG_SUBSCRIBE = "subscribe"
+    }
+}

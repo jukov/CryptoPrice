@@ -33,7 +33,7 @@ class TickerScreen(
         tickerSymbolLabel.text = symbol
         tickerSymbolLabel.alignmentX = Component.CENTER_ALIGNMENT
 
-        tickerPriceLabel.font = Font("Arial", 0, 50)
+        tickerPriceLabel.font = Font("Arial", 0, 40)
         tickerPriceLabel.text = "-"
         tickerPriceLabel.alignmentX = Component.CENTER_ALIGNMENT
 
