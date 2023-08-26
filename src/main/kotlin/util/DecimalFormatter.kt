@@ -26,7 +26,7 @@ class DecimalFormatter {
         return result
     }
 
-    private fun calcValuePrecision(value: BigDecimal, maxPrecision: Int = Int.MAX_VALUE): Int {
+    fun calcValuePrecision(value: BigDecimal, maxPrecision: Int = Int.MAX_VALUE): Int {
         val digits = integerDigits(value)
         val zeros = decimalFirstZeros(value)
         return minOf(

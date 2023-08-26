@@ -19,7 +19,6 @@ class MainScreen(
     private val logger: Logger,
     private val viewModel: TickerViewModel
 ) {
-    //TODO ticker styling
     private val scope = CoroutineScope(Dispatchers.Swing)
 
     private val frame = JFrame()
@@ -62,7 +61,7 @@ class MainScreen(
             frame.contentPane.add(tickerPanel, BorderLayout.CENTER)
 
             model.tickers.forEach { instrument ->
-                tickers[instrument.symbol]?.setPrice(instrument.price)
+                tickers[instrument.symbol]?.setPrice(instrument.price, instrument.priceFormatted)
             }
         }
     }
@@ -121,6 +120,7 @@ class MainScreen(
 
     private fun removeTicker(symbol: String) {
         val ticker = tickers.remove(symbol) ?: return
+        ticker.onRemove()
         tickerPanel.remove(ticker.component)
         adjustGrid()
         tickerPanel.revalidate()

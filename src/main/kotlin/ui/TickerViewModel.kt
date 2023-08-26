@@ -10,6 +10,7 @@ import ui.model.ObservingInstrumentItem
 import ui.model.ObservingInstrumentsModel
 import util.DecimalFormatter
 import util.editIf
+import java.math.RoundingMode
 
 class TickerViewModel(
     private val decimalFormatter: DecimalFormatter,
@@ -39,7 +40,14 @@ class TickerViewModel(
             currentModel.copy(
                 tickers = currentModel.tickers.editIf(
                     { it.symbol == newInstrument.symbol },
-                    { it.copy(price = decimalFormatter.formatAdjustPrecision(newInstrument.price, it.precision)) }
+                    {
+                        val priceFormatted = decimalFormatter.formatAdjustPrecision(newInstrument.price, it.precision)
+                        val postFormatPrecision = decimalFormatter.calcValuePrecision(newInstrument.price, it.precision)
+                        it.copy(
+                            price = newInstrument.price.setScale(postFormatPrecision, RoundingMode.HALF_EVEN),
+                            priceFormatted = priceFormatted
+                        )
+                    }
                 )
             )
         )
@@ -63,6 +71,7 @@ class TickerViewModel(
                                 instrument.name,
                                 instrument.symbol,
                                 instrument.precision,
+                                null,
                                 PRICE_LOADING
                             )
                         )

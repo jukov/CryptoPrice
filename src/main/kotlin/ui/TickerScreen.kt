@@ -1,18 +1,25 @@
 package ui
 
+import kotlinx.coroutines.*
+import kotlinx.coroutines.swing.Swing
 import ui.model.InstrumentPickerItem
+import java.awt.Color
 import java.awt.Component
 import java.awt.Dimension
 import java.awt.Font
+import java.math.BigDecimal
 import javax.swing.Box
 import javax.swing.JButton
 import javax.swing.JLabel
 import javax.swing.SwingConstants
 
 class TickerScreen(
-    val instrument: InstrumentPickerItem,
-    val onDeactivateClickListener: (symbol: String) -> Unit
+    private val instrument: InstrumentPickerItem,
+    private val onDeactivateClickListener: (symbol: String) -> Unit
 ) {
+
+    private val scope = CoroutineScope(Dispatchers.Swing)
+    private var blinkJob: Job? = null
 
     private val box = Box.createVerticalBox()
     private val deactivateButton = JButton()
@@ -21,9 +28,13 @@ class TickerScreen(
 
     val component: Component = box
 
+    private var price: BigDecimal? = null
+
     init {
         box.setSize(200, 200)
         box.minimumSize = Dimension(200, 200)
+        box.isOpaque = true
+
         box.add(Box.createVerticalGlue())
         box.add(tickerSymbolLabel)
         box.add(tickerPriceLabel)
@@ -46,7 +57,37 @@ class TickerScreen(
         }
     }
 
-    fun setPrice(price: String) {
-        tickerPriceLabel.text = price
+    fun setPrice(price: BigDecimal?, priceFormatted: String) {
+        val oldPrice = this.price
+        this.price = price
+
+        blink(oldPrice, price)
+
+        tickerPriceLabel.text = priceFormatted
+    }
+
+    private fun blink(oldPrice: BigDecimal?, newPrice: BigDecimal?) {
+        if (oldPrice == null || newPrice == null) return
+        if (oldPrice == newPrice) return
+
+        blinkJob?.cancel("New price arrived")
+        blinkJob = scope.launch {
+            if (oldPrice > newPrice) {
+                box.background = ASK_COLOR
+            } else {
+                box.background = BID_COLOR
+            }
+            delay(500L)
+            box.background = null
+        }
+    }
+
+    fun onRemove() {
+        scope.cancel("Ticker removed")
+    }
+
+    companion object {
+        private val BID_COLOR = Color(0x74db48)
+        private val ASK_COLOR = Color(0xdb4848)
     }
 }
