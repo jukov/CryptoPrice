@@ -7,32 +7,28 @@ import kotlinx.coroutines.swing.Swing
 import org.slf4j.Logger
 import ui.model.InstrumentPickerItem
 import ui.model.ObservingInstrumentsModel
-import java.awt.BorderLayout
-import java.awt.Component
-import java.awt.Dimension
-import java.awt.GridLayout
+import java.awt.*
 import javax.swing.*
 
 class MainScreen(
     private val logger: Logger,
     private val viewModel: TickerViewModel
 ) {
-    //TODO start in center of screen
+    //TODO more pairs (non spot)
     //TODO ticker styling
     //TODO header styling
     private val scope = CoroutineScope(Dispatchers.Swing)
 
     private val frame = JFrame()
-    private val newTickerBox = Box.createHorizontalBox()
-    private val newTickerTextFieldBox = Box.createVerticalBox()
+    private val newTickerPanel = JPanel()
     private val tickerPanel = JPanel()
     private val newTickerButton = JButton("Add Ticker")
-    private val newTickerLabel = JLabel("Ticker name")
     private val newTickerComboBox = JComboBox<InstrumentPickerItem>()
     private val hintLabel = JLabel(
         "<html><div style='text-align: center;'>No tickers. Type ticker name and press \"Add Ticker\"</html>",
         SwingConstants.CENTER
     )
+    private val newTickerLayout = GridBagLayout()
     private val tickerLayout = GridLayout(1, 1)
 
     private val tickers = HashMap<String, TickerScreen>()
@@ -52,6 +48,7 @@ class MainScreen(
                 if (instruments.isNotEmpty()) {
                     newTickerComboBox.selectedItem = instruments.first()
                 }
+                newTickerPanel.revalidate()
             }
         }
 
@@ -78,24 +75,26 @@ class MainScreen(
 
     private fun initUi() {
         val pane = frame.contentPane
-        pane.add(newTickerBox, BorderLayout.PAGE_START)
+        pane.add(newTickerPanel, BorderLayout.PAGE_START)
         pane.add(hintLabel, BorderLayout.CENTER)
 
         tickerPanel.layout = tickerLayout
+        newTickerPanel.layout = newTickerLayout
 
-        newTickerBox.add(newTickerButton)
-        newTickerBox.add(newTickerTextFieldBox)
-        newTickerTextFieldBox.add(newTickerLabel)
-        newTickerTextFieldBox.add(newTickerComboBox)
+        newTickerPanel.add(newTickerButton, GridBagConstraints().apply {
+            gridx = 0
+            gridy = 0
+            weightx = 1.0
+            fill = GridBagConstraints.HORIZONTAL
+        })
+        newTickerPanel.add(newTickerComboBox, GridBagConstraints().apply {
+            gridx = 0
+            gridy = 1
+            weightx = 1.0
+            fill = GridBagConstraints.HORIZONTAL
+        })
 
         hintLabel.alignmentX = Component.CENTER_ALIGNMENT
-
-        newTickerComboBox.isEditable = true
-//        newTickerComboBox.addItemListener { e ->
-//            if (e.stateChange == ItemEvent.SELECTED) {
-//
-//            }
-//        }
 
         newTickerButton.maximumSize = Dimension(newTickerButton.width, Int.MAX_VALUE)
         newTickerButton.alignmentY = Component.CENTER_ALIGNMENT
@@ -108,8 +107,10 @@ class MainScreen(
             }
         }
 
-        frame.setSize(TICKER_SIZE, 250)
+        frame.setSize(TICKER_SIZE, TICKER_SIZE + 50)
         frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
+        frame.isResizable = false
+        frame.setLocationRelativeTo(null)
         frame.title = "Crypto Price"
         frame.isVisible = true
     }
@@ -131,14 +132,20 @@ class MainScreen(
     }
 
     private fun adjustGrid() {
-        val column = tickers.size.coerceAtMost(MAX_COLUMNS)
-        val row = 1 + (tickers.size - 1) / MAX_COLUMNS
+        if (tickers.isEmpty()) {
+            frame.setSize(TICKER_SIZE, TICKER_SIZE + 50)
 
-        tickerLayout.columns = column
-        tickerLayout.rows = row
+            logger.info("Grid adjusted to hint (0 tickers)")
+        } else {
+            val column = tickers.size.coerceAtMost(MAX_COLUMNS)
+            val row = 1 + (tickers.size - 1) / MAX_COLUMNS
 
-        frame.setSize(column * TICKER_SIZE, newTickerBox.height + row * TICKER_SIZE)
-        logger.info("Grid adjusted to $row rows and $column columns")
+            tickerLayout.columns = column
+            tickerLayout.rows = row
+
+            frame.setSize(column * TICKER_SIZE, newTickerPanel.height + row * TICKER_SIZE)
+            logger.info("Grid adjusted to $row rows and $column columns")
+        }
     }
 
     private fun removeTicker(symbol: String) {
@@ -153,6 +160,6 @@ class MainScreen(
         const val MAX_ROWS = 3
         const val MAX_COLUMNS = 5
         const val MAX_TICKERS = MAX_ROWS * MAX_COLUMNS
-        const val TICKER_SIZE = 200
+        const val TICKER_SIZE = 220
     }
 }

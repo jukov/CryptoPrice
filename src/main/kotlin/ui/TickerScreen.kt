@@ -38,7 +38,6 @@ class TickerScreen(
         tickerPriceLabel.alignmentX = Component.CENTER_ALIGNMENT
 
         deactivateButton.text = "Deactivate"
-        deactivateButton.font = Font("Arial", 0, 30)
         deactivateButton.alignmentX = Component.CENTER_ALIGNMENT
 
         deactivateButton.addActionListener {
