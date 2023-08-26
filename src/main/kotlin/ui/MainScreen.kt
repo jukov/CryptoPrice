@@ -14,9 +14,7 @@ class MainScreen(
     private val logger: Logger,
     private val viewModel: TickerViewModel
 ) {
-    //TODO more pairs (non spot)
     //TODO ticker styling
-    //TODO header styling
     private val scope = CoroutineScope(Dispatchers.Swing)
 
     private val frame = JFrame()
@@ -42,10 +40,13 @@ class MainScreen(
 
         scope.launch {
             viewModel.getAvailableSymbols().await().let { instruments ->
+                newTickerComboBox.removeAllItems()
                 instruments.forEach {
                     newTickerComboBox.addItem(it)
                 }
                 if (instruments.isNotEmpty()) {
+                    newTickerButton.isEnabled = true
+                    newTickerComboBox.isEnabled = true
                     newTickerComboBox.selectedItem = instruments.first()
                 }
                 newTickerPanel.revalidate()
@@ -94,17 +95,19 @@ class MainScreen(
             fill = GridBagConstraints.HORIZONTAL
         })
 
+        newTickerComboBox.addItem(LOADING_ITEM)
+        newTickerComboBox.isEnabled = false
+
         hintLabel.alignmentX = Component.CENTER_ALIGNMENT
 
         newTickerButton.maximumSize = Dimension(newTickerButton.width, Int.MAX_VALUE)
         newTickerButton.alignmentY = Component.CENTER_ALIGNMENT
         newTickerButton.alignmentX = Component.CENTER_ALIGNMENT
+        newTickerButton.isEnabled = false
 
         newTickerButton.addActionListener {
-            when (val item = newTickerComboBox.selectedItem) {
-                is InstrumentPickerItem -> addTicker(item.symbol)
-                is String -> addTicker(item)
-            }
+            (newTickerComboBox.selectedItem as? InstrumentPickerItem)
+                ?.let(::addTicker)
         }
 
         frame.setSize(TICKER_SIZE, TICKER_SIZE + 50)
@@ -115,12 +118,12 @@ class MainScreen(
         frame.isVisible = true
     }
 
-    private fun addTicker(symbol: String) {
+    private fun addTicker(instrument: InstrumentPickerItem) {
         if (tickers.size > MAX_TICKERS) return
-        if (tickers.containsKey(symbol)) return
+        if (tickers.containsKey(instrument.symbol)) return
 
-        val ticker = TickerScreen(symbol, onTickerDisconnect)
-        tickers[symbol] = ticker
+        val ticker = TickerScreen(instrument, onTickerDisconnect)
+        tickers[instrument.symbol] = ticker
 
         tickerPanel.add(ticker.component)
 
@@ -128,7 +131,7 @@ class MainScreen(
 
         tickerPanel.revalidate()
 
-        viewModel.subscribe(symbol)
+        viewModel.subscribe(instrument)
     }
 
     private fun adjustGrid() {
@@ -161,5 +164,11 @@ class MainScreen(
         const val MAX_COLUMNS = 5
         const val MAX_TICKERS = MAX_ROWS * MAX_COLUMNS
         const val TICKER_SIZE = 220
+        private val LOADING_ITEM = InstrumentPickerItem(
+            "Loading instruments...", "",
+            "",
+            "",
+            0
+        )
     }
 }

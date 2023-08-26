@@ -1,9 +1,9 @@
 package domain.model
 
-import java.math.BigDecimal
-
 data class Instrument(
     val name: String,
+    val baseAsset: String,
+    val quoteAsset: String,
     val symbol: String,
-    val price: BigDecimal?
+    val precision: Int
 )

@@ -7,6 +7,7 @@ import io.ktor.client.plugins.websocket.*
 import kotlinx.serialization.json.Json
 import ui.MainScreen
 import ui.TickerViewModel
+import util.DecimalFormatter
 import util.Logging
 
 fun main() {
@@ -25,7 +26,7 @@ fun main() {
     MainScreen(
         logger = Logging,
         viewModel = TickerViewModel(
-            logger = Logging,
+            decimalFormatter = DecimalFormatter(),
             repository = TickerRepositoryImpl(
                 dataConfig = dataConfig,
                 websocket = WSHelper(

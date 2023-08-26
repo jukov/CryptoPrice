@@ -1,5 +1,6 @@
 package ui
 
+import ui.model.InstrumentPickerItem
 import java.awt.Component
 import java.awt.Dimension
 import java.awt.Font
@@ -9,7 +10,7 @@ import javax.swing.JLabel
 import javax.swing.SwingConstants
 
 class TickerScreen(
-    val symbol: String,
+    val instrument: InstrumentPickerItem,
     val onDeactivateClickListener: (symbol: String) -> Unit
 ) {
 
@@ -30,7 +31,7 @@ class TickerScreen(
         box.add(deactivateButton)
 
         tickerSymbolLabel.font = Font("Arial", 0, 30)//TODO system font
-        tickerSymbolLabel.text = symbol
+        tickerSymbolLabel.text = instrument.name
         tickerSymbolLabel.alignmentX = Component.CENTER_ALIGNMENT
 
         tickerPriceLabel.font = Font("Arial", 0, 40)
@@ -41,7 +42,7 @@ class TickerScreen(
         deactivateButton.alignmentX = Component.CENTER_ALIGNMENT
 
         deactivateButton.addActionListener {
-            onDeactivateClickListener(symbol)
+            onDeactivateClickListener(instrument.symbol)
         }
     }
 

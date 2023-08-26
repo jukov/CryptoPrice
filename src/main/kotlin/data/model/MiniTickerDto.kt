@@ -5,7 +5,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class MiniTickerDto(
+data class MiniTickerDto(//TODO change to non mini and replace high/low with realtime price
     @SerialName("s") val symbol: String?,
     @SerialName("e") val eventType: String?,
     @SerialName("E") val eventTime: Long?,

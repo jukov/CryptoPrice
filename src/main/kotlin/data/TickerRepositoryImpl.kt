@@ -4,6 +4,7 @@ import data.model.ExchangeInfoDto
 import data.model.MiniTickerDto
 import domain.TickerRepository
 import domain.model.Instrument
+import domain.model.InstrumentUpdate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.serialization.json.Json
@@ -19,11 +20,11 @@ class TickerRepositoryImpl(
 
     private val wsId = AtomicInteger(1)
 
-    private val instrumentUpdateFlow = MutableSharedFlow<Instrument>()
+    private val instrumentUpdateFlow = MutableSharedFlow<InstrumentUpdate>()
 
     private val observingSymbols = HashSet<String>()
 
-    override suspend fun observeInstruments(): Flow<Instrument> = instrumentUpdateFlow
+    override suspend fun observeInstrumentUpdates(): Flow<InstrumentUpdate> = instrumentUpdateFlow
 
     override suspend fun subscribe(symbol: String) {
         observingSymbols += symbol
@@ -88,17 +89,18 @@ class TickerRepositoryImpl(
         quoteAsset ?: return null
         return Instrument(
             name = "$baseAsset/$quoteAsset",
+            baseAsset = baseAsset,
+            quoteAsset = quoteAsset,
             symbol = symbol ?: return null,
-            price = null
+            precision = baseAssetPrecision ?: return null
         )
     }
 
-    private fun MiniTickerDto.toModel(): Instrument? {
+    private fun MiniTickerDto.toModel(): InstrumentUpdate? {
         high ?: return null
         low ?: return null
-        return Instrument(
-            name = symbol ?: return null,
-            symbol = symbol,
+        return InstrumentUpdate(
+            symbol = symbol ?: return null,
             price = (high.toBigDecimal() + low.toBigDecimal()).divide("2".toBigDecimal(), RoundingMode.HALF_EVEN)
         )
     }

@@ -1,18 +1,18 @@
 package ui
 
 import domain.TickerRepository
-import domain.model.Instrument
+import domain.model.InstrumentUpdate
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import org.slf4j.Logger
 import ui.model.InstrumentPickerItem
 import ui.model.ObservingInstrumentItem
 import ui.model.ObservingInstrumentsModel
+import util.DecimalFormatter
 import util.editIf
 
 class TickerViewModel(
-    private val logger: Logger,
+    private val decimalFormatter: DecimalFormatter,
     private val repository: TickerRepository
 ) {
 
@@ -21,7 +21,7 @@ class TickerViewModel(
     init {
         //todo is it not working after screen close?
         scope.launch {
-            repository.observeInstruments().collect { newInstrument ->
+            repository.observeInstrumentUpdates().collect { newInstrument ->
                 setNewPrice(newInstrument)
             }
         }
@@ -33,35 +33,40 @@ class TickerViewModel(
 
     fun observeModel(): Flow<ObservingInstrumentsModel> = modelFlow
 
-    private suspend fun setNewPrice(newInstrument: Instrument) {
+    private suspend fun setNewPrice(newInstrument: InstrumentUpdate) {
         val currentModel = modelFlow.value
         modelFlow.emit(
             currentModel.copy(
                 tickers = currentModel.tickers.editIf(
                     { it.symbol == newInstrument.symbol },
-                    { it.copy(price = newInstrument.price?.toPlainString() ?: PRICE_EMPTY) }
+                    { it.copy(price = decimalFormatter.formatAdjustPrecision(newInstrument.price, it.precision)) }
                 )
             )
         )
     }
 
-    fun subscribe(symbol: String) {
-        logger.error("Subscribe start")
+    fun subscribe(instrument: InstrumentPickerItem) {
         scope.launch {
-            logger.error("Subscribe start in coroutine")
-            addInstrument(symbol)
-            logger.error("Instrument added")
-            repository.subscribe(symbol)
-            logger.error("Subscribed")
+            addInstrument(instrument)
+            repository.subscribe(instrument.symbol)
         }
     }
 
-    private suspend fun addInstrument(symbol: String) {
+    private suspend fun addInstrument(instrument: InstrumentPickerItem) {
         val currentModel = modelFlow.value
         modelFlow.emit(
             currentModel.copy(
                 tickers = currentModel.tickers.toMutableList()
-                    .apply { add(ObservingInstrumentItem(symbol, PRICE_EMPTY)) }
+                    .apply {
+                        add(
+                            ObservingInstrumentItem(
+                                instrument.name,
+                                instrument.symbol,
+                                instrument.precision,
+                                PRICE_LOADING
+                            )
+                        )
+                    }
             )
         )
     }
@@ -85,17 +90,25 @@ class TickerViewModel(
     suspend fun getAvailableSymbols(): Deferred<List<InstrumentPickerItem>> =
         scope.async {
             repository.getInstrumentList()
-                .map {
-                    InstrumentPickerItem(
-                        it.name,
-                        it.symbol
-                    )
+                .asSequence()
+                .map { instrument ->
+                    with(instrument) {
+                        InstrumentPickerItem(
+                            name = name,
+                            baseCurrency = baseAsset,
+                            quoteCurrency = quoteAsset,
+                            symbol = symbol,
+                            precision = precision
+                        )
+                    }
                 }
+                .filter { it.quoteCurrency == "USDT" }
                 .sortedBy { it.name }
+                .toList()
         }
 
 
     companion object {
-        private const val PRICE_EMPTY = "-"
+        private const val PRICE_LOADING = "Loading..."
     }
 }
