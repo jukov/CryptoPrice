@@ -10,9 +10,10 @@ import ui.TickerViewModel
 import util.Logging
 
 fun main() {
-    val httpClient = HttpClient {
+    val wsHttpClient = HttpClient {
         install(WebSockets)
     }
+    val httpClient = HttpClient()
     val dataConfig = DataConfig(
         wsUrl = "wss://ws.bitmex.com/realtime",
         restUrl = "https://www.bitmex.com/api/v1"
@@ -29,13 +30,11 @@ fun main() {
                 dataConfig = dataConfig,
                 websocket = WSHelper(
                     logger = Logging,
-                    httpClient = httpClient
+                    httpClient = wsHttpClient
                 ),
                 rest = RestHelper(
                     logger = Logging,
-                    httpClient = httpClient,
-                    dataConfig = dataConfig,
-                    json = json
+                    httpClient = httpClient
                 ),
                 json = json
             )

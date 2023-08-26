@@ -76,10 +76,24 @@ class TickerRepositoryImpl(
         )
     }
 
-    override suspend fun getInstrumentList(): List<Instrument> =
-        rest.getInstrumentList().mapNotNull { it.toModel() }
+    override suspend fun getInstrumentList(): List<Instrument> {
+        return try {
+            val response = rest.get(
+                dataConfig.restUrl + "/instrument",
+            ) {
+                parameters.append("filter", "{\"typ\": \"IFXXXP\"}")
+                parameters.append("columns", "[\"symbol\",\"underlying\",\"quoteCurrency\"]")
+                parameters.append("count", 500.toString())
+            }
 
-    companion object {
-        const val ARG_SUBSCRIBE = "subscribe"
+            json.decodeFromString<List<InstrumentListDtoItem>>(response)
+                .mapNotNull { it.toModel() }
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
-}
+
+        companion object {
+            const val ARG_SUBSCRIBE = "subscribe"
+        }
+    }
