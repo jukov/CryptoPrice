@@ -1,12 +1,14 @@
 package data
 
 import data.model.ExchangeInfoDto
+import data.model.RequestDto
 import data.model.TickerDto
 import domain.TickerRepository
 import domain.model.Instrument
 import domain.model.InstrumentUpdate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -26,17 +28,29 @@ class TickerRepositoryImpl(
     override suspend fun observeInstrumentUpdates(): Flow<InstrumentUpdate> = instrumentUpdateFlow
 
     override suspend fun subscribe(symbol: String) {
-        observingSymbols += symbol
+        subscribe(listOf(symbol))
+    }
 
-        val streamName = "${symbol.lowercase()}@ticker"
+    override suspend fun subscribe(symbols: List<String>) {
+        observingSymbols += symbols
+
+        val streams = symbols.map { "${it.lowercase()}@ticker" }
 
         if (!websocket.isWebsocketStarted) {
-            websocket.connect("${dataConfig.wsUrl}/ws/$streamName") { message ->
+            websocket.connect(
+                "${dataConfig.wsUrl}/ws/${streams.joinToString(separator = "/")}"
+            ) { message ->
                 handleMessage(message)
             }
         } else {
             websocket.send(
-                "{\"method\": \"SUBSCRIBE\",\"params\":[\"$streamName\"],\"id\": ${wsId.getAndIncrement()}}"
+                json.encodeToString(
+                    RequestDto(
+                        wsId.getAndIncrement(),
+                        "SUBSCRIBE",
+                        streams
+                    )
+                )
             )
         }
     }
@@ -47,9 +61,17 @@ class TickerRepositoryImpl(
         if (observingSymbols.isEmpty()) {
             websocket.disconnect()
         } else {
-            val streamName = "${symbol.lowercase()}@ticker"
+            val stream = "${symbol.lowercase()}@ticker"
 
-            websocket.send("{\"method\": \"UNSUBSCRIBE\",\"params\":[\"$streamName\"],\"id\": ${wsId.getAndIncrement()}}")
+            websocket.send(
+                json.encodeToString(
+                    RequestDto(
+                        wsId.getAndIncrement(),
+                        "UNSUBSCRIBE",
+                        listOf(stream)
+                    )
+                )
+            )
         }
     }
 
@@ -77,7 +99,7 @@ class TickerRepositoryImpl(
 
             json.decodeFromString<ExchangeInfoDto>(response).symbols
                 ?.mapNotNull { it?.toModel() }
-                ?: emptyList() //TODO error
+                ?: emptyList()
         } catch (e: Exception) {
             emptyList()
         }
@@ -102,7 +124,4 @@ class TickerRepositoryImpl(
         )
     }
 
-    companion object {
-        const val ARG_SUBSCRIBE = "subscribe"
-    }
 }

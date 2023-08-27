@@ -1,7 +1,4 @@
-import data.DataConfig
-import data.RestHelper
-import data.TickerRepositoryImpl
-import data.WSHelper
+import data.*
 import io.ktor.client.*
 import io.ktor.client.plugins.websocket.*
 import kotlinx.serialization.json.Json
@@ -27,7 +24,7 @@ fun main() {
         logger = Logging,
         viewModel = TickerViewModel(
             decimalFormatter = DecimalFormatter(),
-            repository = TickerRepositoryImpl(
+            tickerRepository = TickerRepositoryImpl(
                 dataConfig = dataConfig,
                 websocket = WSHelper(
                     logger = Logging,
@@ -37,6 +34,10 @@ fun main() {
                     logger = Logging,
                     httpClient = httpClient
                 ),
+                json = json
+            ),
+            settingsRepository = SettingsRepositoryImpl(
+                logger = Logging,
                 json = json
             )
         )

@@ -18,7 +18,7 @@ class NewTickerScreen(
     private val newTickerLayout = GridBagLayout()
 
     val component: Component = newTickerPanel
-    fun setInstruments(instruments: List<InstrumentPickerItem>) {
+    fun setAvailableInstruments(instruments: List<InstrumentPickerItem>) {
         newTickerComboBox.removeAllItems()
         instruments.forEach {
             newTickerComboBox.addItem(it)

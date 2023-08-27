@@ -1,7 +1,9 @@
 package ui
 
+import domain.SettingsRepository
 import domain.TickerRepository
 import domain.model.InstrumentUpdate
+import domain.model.UserInstrument
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +16,8 @@ import java.math.RoundingMode
 
 class TickerViewModel(
     private val decimalFormatter: DecimalFormatter,
-    private val repository: TickerRepository
+    private val tickerRepository: TickerRepository,
+    private val settingsRepository: SettingsRepository
 ) {
 
     private var scope = CoroutineScope(Dispatchers.IO)
@@ -22,8 +25,17 @@ class TickerViewModel(
     init {
         //todo is it not working after screen close?
         scope.launch {
-            repository.observeInstrumentUpdates().collect { newInstrument ->
+            tickerRepository.observeInstrumentUpdates().collect { newInstrument ->
                 setNewPrice(newInstrument)
+            }
+        }
+
+        scope.launch {
+            val userInstruments = settingsRepository.getUserInstruments()
+            if (userInstruments == null) {
+                restoreUserInstruments(SAMPLE_INSTRUMENTS)
+            } else {
+                restoreUserInstruments(userInstruments)
             }
         }
     }
@@ -32,7 +44,27 @@ class TickerViewModel(
         ObservingInstrumentsModel(tickers = emptyList())
     )
 
-    fun observeModel(): Flow<ObservingInstrumentsModel> = modelFlow
+    fun observeTickers(): Flow<ObservingInstrumentsModel> = modelFlow
+
+    private suspend fun restoreUserInstruments(userInstruments: List<UserInstrument>) {
+        val currentModel = modelFlow.value
+        modelFlow.emit(
+            currentModel.copy(
+                tickers = userInstruments.map {
+                    with(it) {
+                        ObservingInstrumentItem(
+                            name,
+                            symbol,
+                            precision,
+                            null,
+                            PRICE_LOADING
+                        )
+                    }
+                }
+            )
+        )
+        tickerRepository.subscribe(userInstruments.map { it.symbol })
+    }
 
     private suspend fun setNewPrice(newInstrument: InstrumentUpdate) {
         val currentModel = modelFlow.value
@@ -53,10 +85,11 @@ class TickerViewModel(
         )
     }
 
-    fun subscribe(instrument: InstrumentPickerItem) {
+    fun addTicker(instrument: InstrumentPickerItem) {
         scope.launch {
             addInstrument(instrument)
-            repository.subscribe(instrument.symbol)
+            tickerRepository.subscribe(instrument.symbol)
+            saveTickers()
         }
     }
 
@@ -80,11 +113,20 @@ class TickerViewModel(
         )
     }
 
-    fun unsubscribe(symbol: String) {
+    fun removeTicker(symbol: String) {
         scope.launch {
             removeInstrument(symbol)
-            repository.unsubscribe(symbol)
+            tickerRepository.unsubscribe(symbol)
+            saveTickers()
         }
+    }
+
+    private suspend fun saveTickers() {
+        settingsRepository.setUserInstruments(
+            modelFlow.value.tickers.map {
+                UserInstrument(it.name, it.symbol, it.precision)
+            }
+        )
     }
 
     private suspend fun removeInstrument(symbol: String) {
@@ -96,22 +138,22 @@ class TickerViewModel(
         )
     }
 
-    suspend fun getAvailableSymbols(): Deferred<List<InstrumentPickerItem>> =
+    suspend fun getAvailableInstruments(): Deferred<List<InstrumentPickerItem>> =
         scope.async {
-            repository.getInstrumentList()
+            tickerRepository.getInstrumentList()
                 .asSequence()
                 .map { instrument ->
                     with(instrument) {
                         InstrumentPickerItem(
                             name = name,
-                            baseCurrency = baseAsset,
-                            quoteCurrency = quoteAsset,
                             symbol = symbol,
+                            baseAsset = baseAsset,
+                            quoteAsset = quoteAsset,
                             precision = precision
                         )
                     }
                 }
-                .filter { it.quoteCurrency == "USDT" }
+                .filter { it.quoteAsset == "USDT" }
                 .sortedBy { it.name }
                 .toList()
         }
@@ -119,5 +161,23 @@ class TickerViewModel(
 
     companion object {
         private const val PRICE_LOADING = "Loading..."
+
+        private val SAMPLE_INSTRUMENTS = listOf(
+            UserInstrument(
+                "BTC/USDT",
+                "BTCUSDT",
+                4
+            ),
+            UserInstrument(
+                "ETH/USDT",
+                "ETHUSDT",
+                4
+            ),
+            UserInstrument(
+                "BNB/USDT",
+                "BNBUSDT",
+                4
+            ),
+        )
     }
 }

@@ -3,8 +3,8 @@ package ui.model
 
 data class InstrumentPickerItem(
     val name: String,
-    val baseCurrency: String,
-    val quoteCurrency: String,
+    val baseAsset: String,
+    val quoteAsset: String,
     val symbol: String,
     val precision: Int
 ) {

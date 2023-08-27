@@ -5,7 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
 import org.slf4j.Logger
-import ui.model.InstrumentPickerItem
+import ui.model.ObservingInstrumentItem
 import ui.model.ObservingInstrumentsModel
 import java.awt.BorderLayout
 import java.awt.Component
@@ -29,30 +29,26 @@ class MainScreen(
     )
     private val tickerLayout = GridLayout(1, 1)
 
-    private val tickers = HashMap<String, TickerScreen>()
-    private val newTickerScreen = NewTickerScreen(::addTicker)
-
-    private val onTickerDisconnect = { symbol: String ->
-        removeTicker(symbol)
-    }
+    private val tickerScreens = HashMap<String, TickerScreen>()
+    private val newTickerScreen = NewTickerScreen(viewModel::addTicker)
 
     init {
         initUi()
 
         scope.launch {
-            viewModel.getAvailableSymbols().await().let { instruments ->
-                newTickerScreen.setInstruments(instruments)
+            viewModel.getAvailableInstruments().await().let { instruments ->
+                newTickerScreen.setAvailableInstruments(instruments)
             }
         }
 
         scope.launch {
-            viewModel.observeModel().collect { model ->
-                setModel(model)
+            viewModel.observeTickers().collect { model ->
+                setTickers(model)
             }
         }
     }
 
-    private fun setModel(model: ObservingInstrumentsModel) {
+    private fun setTickers(model: ObservingInstrumentsModel) {
         if (model.tickers.isEmpty()) {
             frame.contentPane.remove(tickerPanel)
             frame.contentPane.add(hintLabel, BorderLayout.CENTER)
@@ -61,7 +57,15 @@ class MainScreen(
             frame.contentPane.add(tickerPanel, BorderLayout.CENTER)
 
             model.tickers.forEach { instrument ->
-                tickers[instrument.symbol]?.setPrice(instrument.price, instrument.priceFormatted)
+                if (tickerScreens.containsKey(instrument.symbol)) {
+                    tickerScreens[instrument.symbol]?.setPrice(instrument.price, instrument.priceFormatted)
+                } else {
+                    addTicker(instrument)
+                }
+            }
+
+            tickerScreens.keys.minus(model.tickers.map { it.symbol }.toSet()).forEach {  removedSymbol ->
+                removeTicker(removedSymbol)
             }
         }
     }
@@ -85,30 +89,29 @@ class MainScreen(
         frame.isVisible = true
     }
 
-    private fun addTicker(instrument: InstrumentPickerItem) {
-        if (tickers.size > MAX_TICKERS) return
-        if (tickers.containsKey(instrument.symbol)) return
+    private fun addTicker(instrument: ObservingInstrumentItem) {
+        if (tickerScreens.size > MAX_TICKERS) return
+        if (tickerScreens.containsKey(instrument.symbol)) return
 
-        val ticker = TickerScreen(instrument, onTickerDisconnect)
-        tickers[instrument.symbol] = ticker
+        val ticker = TickerScreen(instrument.name, instrument.symbol, viewModel::removeTicker)
+        ticker.setPrice(instrument.price, instrument.priceFormatted)
+        tickerScreens[instrument.symbol] = ticker
 
         tickerPanel.add(ticker.component)
 
         adjustGrid()
 
         tickerPanel.revalidate()
-
-        viewModel.subscribe(instrument)
     }
 
     private fun adjustGrid() {
-        if (tickers.isEmpty()) {
+        if (tickerScreens.isEmpty()) {
             frame.setSize(TICKER_SIZE, TICKER_SIZE + 50)
 
             logger.info("Grid adjusted to hint (0 tickers)")
         } else {
-            val column = tickers.size.coerceAtMost(MAX_COLUMNS)
-            val row = 1 + (tickers.size - 1) / MAX_COLUMNS
+            val column = tickerScreens.size.coerceAtMost(MAX_COLUMNS)
+            val row = 1 + (tickerScreens.size - 1) / MAX_COLUMNS
 
             tickerLayout.columns = column
             tickerLayout.rows = row
@@ -119,12 +122,11 @@ class MainScreen(
     }
 
     private fun removeTicker(symbol: String) {
-        val ticker = tickers.remove(symbol) ?: return
+        val ticker = tickerScreens.remove(symbol) ?: return
         ticker.onRemove()
         tickerPanel.remove(ticker.component)
         adjustGrid()
         tickerPanel.revalidate()
-        viewModel.unsubscribe(symbol)
     }
 
     companion object {

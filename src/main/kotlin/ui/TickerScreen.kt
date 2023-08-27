@@ -2,7 +2,6 @@ package ui
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.swing.Swing
-import ui.model.InstrumentPickerItem
 import java.awt.Color
 import java.awt.Component
 import java.awt.Dimension
@@ -14,7 +13,8 @@ import javax.swing.JLabel
 import javax.swing.SwingConstants
 
 class TickerScreen(
-    private val instrument: InstrumentPickerItem,
+    private val name: String,
+    private val symbol: String,
     private val onDeactivateClickListener: (symbol: String) -> Unit
 ) {
 
@@ -42,7 +42,7 @@ class TickerScreen(
         box.add(deactivateButton)
 
         tickerSymbolLabel.font = Font("Arial", 0, 30)//TODO system font
-        tickerSymbolLabel.text = instrument.name
+        tickerSymbolLabel.text = name
         tickerSymbolLabel.alignmentX = Component.CENTER_ALIGNMENT
 
         tickerPriceLabel.font = Font("Arial", 0, 40)
@@ -53,7 +53,7 @@ class TickerScreen(
         deactivateButton.alignmentX = Component.CENTER_ALIGNMENT
 
         deactivateButton.addActionListener {
-            onDeactivateClickListener(instrument.symbol)
+            onDeactivateClickListener(symbol)
         }
     }
 

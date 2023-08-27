@@ -13,5 +13,7 @@ interface TickerRepository {
 
     suspend fun subscribe(symbol: String)
 
+    suspend fun subscribe(symbols: List<String>)
+
     suspend fun unsubscribe(symbol: String)
 }
