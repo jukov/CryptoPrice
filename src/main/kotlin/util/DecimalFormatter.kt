@@ -10,7 +10,7 @@ class DecimalFormatter {
         return synchronized(this) {
             decimalFormat
                 .apply {
-                    minimumFractionDigits = precision
+                    minimumFractionDigits = 0
                     maximumFractionDigits = precision
                 }
                 .format(decimal)
