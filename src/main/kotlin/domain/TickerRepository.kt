@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface TickerRepository {
 
-    suspend fun getInstrumentList(): List<Instrument>
+    suspend fun getInstrumentList(): List<Instrument>?
 
     suspend fun observeInstrumentUpdates(): Flow<InstrumentUpdate>
 

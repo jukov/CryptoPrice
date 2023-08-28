@@ -89,7 +89,7 @@ class TickerRepositoryImpl(
         }
     }
 
-    override suspend fun getInstrumentList(): List<Instrument> {
+    override suspend fun getInstrumentList(): List<Instrument>? {
         return try {
             val response = rest.get(
                 dataConfig.restUrl + "/api/v3/exchangeInfo",
@@ -101,7 +101,7 @@ class TickerRepositoryImpl(
                 ?.mapNotNull { it?.toModel() }
                 ?: emptyList()
         } catch (e: Exception) {
-            emptyList()
+            null
         }
     }
 

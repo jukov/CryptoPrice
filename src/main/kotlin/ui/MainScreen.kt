@@ -10,10 +10,8 @@ import ui.model.ObservingInstrumentsModel
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.GridLayout
-import javax.swing.JFrame
-import javax.swing.JLabel
-import javax.swing.JPanel
-import javax.swing.SwingConstants
+import javax.swing.*
+import kotlin.system.exitProcess
 
 class MainScreen(
     private val logger: Logger,
@@ -35,15 +33,37 @@ class MainScreen(
     init {
         initUi()
 
-        scope.launch {
-            viewModel.getAvailableInstruments().await().let { instruments ->
-                newTickerScreen.setAvailableInstruments(instruments)
-            }
-        }
+        getAvailableInstruments()
 
         scope.launch {
             viewModel.observeTickers().collect { model ->
                 setTickers(model)
+            }
+        }
+    }
+
+    private fun getAvailableInstruments() {
+        scope.launch {
+            viewModel.getAvailableInstruments().await().let { instruments ->
+                if (!instruments.isNullOrEmpty()) {
+                    newTickerScreen.setAvailableInstruments(instruments)
+                } else {
+                    val result = JOptionPane.showOptionDialog(
+                        frame,
+                        "An error occurred while fetching instruments. Reload?",
+                        "Error",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.WARNING_MESSAGE,
+                        null,
+                        arrayOf("Yes, reload", "No, exit"),
+                        "Yes, reload"
+                    )
+                    if (result == 0) {
+                        getAvailableInstruments()
+                    } else {
+                        exitProcess(0)
+                    }
+                }
             }
         }
     }

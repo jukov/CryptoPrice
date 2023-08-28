@@ -137,11 +137,11 @@ class TickerViewModel(
         )
     }
 
-    suspend fun getAvailableInstruments(): Deferred<List<InstrumentPickerItem>> =
+    suspend fun getAvailableInstruments(): Deferred<List<InstrumentPickerItem>?> =
         scope.async {
             tickerRepository.getInstrumentList()
-                .asSequence()
-                .map { instrument ->
+                ?.asSequence()
+                ?.map { instrument ->
                     with(instrument) {
                         InstrumentPickerItem(
                             name = name,
@@ -152,9 +152,11 @@ class TickerViewModel(
                         )
                     }
                 }
-                .filter { it.quoteAsset == "USDT" }
-                .sortedBy { it.name }
-                .toList()
+                ?.filter { it.quoteAsset == "USDT" }
+                ?.sortedBy { it.name }
+                ?.toList()
+
+            null
         }
 
 
