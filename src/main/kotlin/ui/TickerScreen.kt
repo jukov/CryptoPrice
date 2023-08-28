@@ -41,11 +41,11 @@ class TickerScreen(
         box.add(Box.createVerticalGlue())
         box.add(deactivateButton)
 
-        tickerSymbolLabel.font = Font("Arial", 0, 30)//TODO system font
+        tickerSymbolLabel.font = tickerSymbolLabel.font.deriveFont(0, 30f)
         tickerSymbolLabel.text = name
         tickerSymbolLabel.alignmentX = Component.CENTER_ALIGNMENT
 
-        tickerPriceLabel.font = Font("Arial", 0, 40)
+        tickerPriceLabel.font = tickerPriceLabel.font.deriveFont(Font.BOLD, 40f)
         tickerPriceLabel.text = "-"
         tickerPriceLabel.alignmentX = Component.CENTER_ALIGNMENT
 

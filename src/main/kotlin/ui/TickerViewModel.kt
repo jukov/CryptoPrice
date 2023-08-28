@@ -23,7 +23,6 @@ class TickerViewModel(
     private var scope = CoroutineScope(Dispatchers.IO)
 
     init {
-        //todo is it not working after screen close?
         scope.launch {
             tickerRepository.observeInstrumentUpdates().collect { newInstrument ->
                 setNewPrice(newInstrument)
