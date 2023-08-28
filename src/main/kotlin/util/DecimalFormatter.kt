@@ -20,11 +20,7 @@ class DecimalFormatter {
     fun formatAdjustPrecision(
         value: BigDecimal,
         maxPrecision: Int,
-    ): String {
-        val result = format(value, calcValuePrecision(value, maxPrecision))
-
-        return result
-    }
+    ): String = format(value, calcValuePrecision(value, maxPrecision))
 
     fun calcValuePrecision(value: BigDecimal, maxPrecision: Int = Int.MAX_VALUE): Int {
         val digits = integerDigits(value)

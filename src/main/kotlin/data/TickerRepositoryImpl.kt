@@ -38,7 +38,7 @@ class TickerRepositoryImpl(
 
         if (!websocket.isWebsocketStarted) {
             websocket.connect(
-                "${dataConfig.wsUrl}/ws/${streams.joinToString(separator = "/")}"
+                "${dataConfig.wsUrl}ws/${streams.joinToString(separator = "/")}"
             ) { message ->
                 handleMessage(message)
             }
