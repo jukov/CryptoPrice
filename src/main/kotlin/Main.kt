@@ -14,8 +14,8 @@ fun main() {
     }
     val httpClient = HttpClient()
     val dataConfig = DataConfig(
-        wsUrl = "wss://stream.binance.com:9443",
-        restUrl = "https://api.binance.com"
+        wsUrl = "wss://stream.binance.com:9443/",
+        restUrl = "https://api.binance.com/"
     )
     val json = Json {
         coerceInputValues = true

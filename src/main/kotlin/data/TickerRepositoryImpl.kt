@@ -92,7 +92,7 @@ class TickerRepositoryImpl(
     override suspend fun getInstrumentList(): List<Instrument>? {
         return try {
             val response = rest.get(
-                dataConfig.restUrl + "/api/v3/exchangeInfo",
+                dataConfig.restUrl + "api/v3/exchangeInfo",
             ) {
                 parameters.append("permissions", "SPOT")
             }
