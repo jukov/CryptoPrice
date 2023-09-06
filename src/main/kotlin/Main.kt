@@ -1,10 +1,11 @@
 import data.*
 import io.ktor.client.*
 import io.ktor.client.plugins.websocket.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
 import ui.MainScreen
 import ui.TickerViewModel
-import util.DecimalFormatter
+import util.DecimalFormatterImpl
 import util.Logging
 
 fun main() {
@@ -23,7 +24,8 @@ fun main() {
     MainScreen(
         logger = Logging,
         viewModel = TickerViewModel(
-            decimalFormatter = DecimalFormatter(),
+            dispatcher = Dispatchers.IO,
+            decimalFormatter = DecimalFormatterImpl(),
             tickerRepository = TickerRepositoryImpl(
                 dataConfig = dataConfig,
                 websocket = WSHelper(

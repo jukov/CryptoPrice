@@ -15,14 +15,15 @@ import util.editIf
 import java.math.RoundingMode
 
 class TickerViewModel(
+    dispatcher: CoroutineDispatcher,
     private val decimalFormatter: DecimalFormatter,
     private val tickerRepository: TickerRepository,
     private val settingsRepository: SettingsRepository
 ) {
 
-    private var scope = CoroutineScope(Dispatchers.IO)
+    private var scope = CoroutineScope(dispatcher)
 
-    init {
+    fun init() {
         scope.launch {
             tickerRepository.observeInstrumentUpdates().collect { newInstrument ->
                 setNewPrice(newInstrument)
@@ -155,15 +156,13 @@ class TickerViewModel(
                 ?.filter { it.quoteAsset == "USDT" }
                 ?.sortedBy { it.name }
                 ?.toList()
-
-            null
         }
 
 
     companion object {
-        private const val PRICE_LOADING = "Loading..."
+        const val PRICE_LOADING = "Loading..."
 
-        private val SAMPLE_INSTRUMENTS = listOf(
+        val SAMPLE_INSTRUMENTS = listOf(
             UserInstrument(
                 "BTC/USDT",
                 "BTCUSDT",

@@ -3,10 +3,18 @@ package util
 import java.math.BigDecimal
 import java.text.DecimalFormat
 
-class DecimalFormatter {
+interface DecimalFormatter {
+    fun format(decimal: BigDecimal, precision: Int): String
+
+    fun formatAdjustPrecision(value: BigDecimal, maxPrecision: Int = Int.MAX_VALUE): String
+
+    fun calcValuePrecision(value: BigDecimal, maxPrecision: Int = Int.MAX_VALUE): Int
+}
+
+class DecimalFormatterImpl: DecimalFormatter {
 
     private val decimalFormat = DecimalFormat()
-    fun format(decimal: BigDecimal, precision: Int): String {
+    override fun format(decimal: BigDecimal, precision: Int): String {
         return synchronized(this) {
             decimalFormat
                 .apply {
@@ -17,12 +25,12 @@ class DecimalFormatter {
         }
     }
 
-    fun formatAdjustPrecision(
+    override fun formatAdjustPrecision(
         value: BigDecimal,
         maxPrecision: Int,
     ): String = format(value, calcValuePrecision(value, maxPrecision))
 
-    fun calcValuePrecision(value: BigDecimal, maxPrecision: Int = Int.MAX_VALUE): Int {
+    override fun calcValuePrecision(value: BigDecimal, maxPrecision: Int): Int {
         val digits = integerDigits(value)
         val zeros = decimalFirstZeros(value)
         return minOf(

@@ -31,6 +31,8 @@ class MainScreen(
     private val newTickerScreen = NewTickerScreen(viewModel::addTicker)
 
     init {
+        viewModel.init()
+
         initUi()
 
         getAvailableInstruments()
@@ -48,23 +50,27 @@ class MainScreen(
                 if (!instruments.isNullOrEmpty()) {
                     newTickerScreen.setAvailableInstruments(instruments)
                 } else {
-                    val result = JOptionPane.showOptionDialog(
-                        frame,
-                        "An error occurred while fetching instruments. Reload?",
-                        "Error",
-                        JOptionPane.YES_NO_OPTION,
-                        JOptionPane.WARNING_MESSAGE,
-                        null,
-                        arrayOf("Yes, reload", "No, exit"),
-                        "Yes, reload"
-                    )
-                    if (result == 0) {
-                        getAvailableInstruments()
-                    } else {
-                        exitProcess(0)
-                    }
+                    handleAvailableInstrumentsError()
                 }
             }
+        }
+    }
+
+    private fun handleAvailableInstrumentsError() {
+        val result = JOptionPane.showOptionDialog(
+            frame,
+            "An error occurred while fetching instruments. Reload?",
+            "Error",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE,
+            null,
+            arrayOf("Yes, reload", "No, exit"),
+            "Yes, reload"
+        )
+        if (result == 0) {
+            getAvailableInstruments()
+        } else {
+            exitProcess(0)
         }
     }
 
