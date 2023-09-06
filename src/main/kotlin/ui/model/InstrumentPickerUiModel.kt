@@ -1,7 +1,7 @@
 
 package ui.model
 
-data class InstrumentPickerItem(
+data class InstrumentPickerUiModel(
     val name: String,
     val baseAsset: String,
     val quoteAsset: String,

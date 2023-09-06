@@ -1,6 +1,6 @@
 package ui
 
-import ui.model.InstrumentPickerItem
+import ui.model.InstrumentPickerUiModel
 import java.awt.Component
 import java.awt.Dimension
 import java.awt.GridBagConstraints
@@ -10,15 +10,15 @@ import javax.swing.JComboBox
 import javax.swing.JPanel
 
 class NewTickerScreen(
-    private val onAddTickerRequested: (InstrumentPickerItem) -> Unit
+    private val onAddTickerRequested: (InstrumentPickerUiModel) -> Unit
 ) {
     private val newTickerPanel = JPanel()
     private val newTickerButton = JButton("Add Ticker")
-    private val newTickerComboBox = JComboBox<InstrumentPickerItem>()
+    private val newTickerComboBox = JComboBox<InstrumentPickerUiModel>()
     private val newTickerLayout = GridBagLayout()
 
     val component: Component = newTickerPanel
-    fun setAvailableInstruments(instruments: List<InstrumentPickerItem>) {
+    fun setAvailableInstruments(instruments: List<InstrumentPickerUiModel>) {
         newTickerComboBox.removeAllItems()
         instruments.forEach {
             newTickerComboBox.addItem(it)
@@ -56,12 +56,12 @@ class NewTickerScreen(
         newTickerButton.isEnabled = false
 
         newTickerButton.addActionListener {
-            (newTickerComboBox.selectedItem as? InstrumentPickerItem)?.let(onAddTickerRequested)
+            (newTickerComboBox.selectedItem as? InstrumentPickerUiModel)?.let(onAddTickerRequested)
         }
     }
 
     companion object {
-        private val LOADING_ITEM = InstrumentPickerItem(
+        private val LOADING_ITEM = InstrumentPickerUiModel(
             "Loading instruments...", "",
             "",
             "",

@@ -7,9 +7,8 @@ import domain.model.UserInstrument
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import ui.model.InstrumentPickerItem
-import ui.model.ObservingInstrumentItem
-import ui.model.ObservingInstrumentsModel
+import ui.model.InstrumentPickerUiModel
+import ui.model.InstrumentUiModel
 import util.DecimalFormatter
 import util.editIf
 import java.math.RoundingMode
@@ -40,28 +39,25 @@ class TickerViewModel(
         }
     }
 
-    private val modelFlow = MutableStateFlow(
-        ObservingInstrumentsModel(tickers = emptyList())
-    )
+    private val modelFlow = MutableStateFlow<List<InstrumentUiModel>>(emptyList())
 
-    fun observeTickers(): Flow<ObservingInstrumentsModel> = modelFlow
+    fun observeTickers(): Flow<List<InstrumentUiModel>> = modelFlow
 
     private suspend fun restoreUserInstruments(userInstruments: List<UserInstrument>) {
         val currentModel = modelFlow.value
+        require(currentModel.isEmpty()) { "No instruments should be subscribed before instruments restore" }
         modelFlow.emit(
-            currentModel.copy(
-                tickers = userInstruments.map {
-                    with(it) {
-                        ObservingInstrumentItem(
-                            name,
-                            symbol,
-                            precision,
-                            null,
-                            PRICE_LOADING
-                        )
-                    }
+            userInstruments.map {
+                with(it) {
+                    InstrumentUiModel(
+                        name,
+                        symbol,
+                        precision,
+                        null,
+                        PRICE_LOADING
+                    )
                 }
-            )
+            }
         )
         tickerRepository.subscribe(userInstruments.map { it.symbol })
     }
@@ -69,23 +65,21 @@ class TickerViewModel(
     private suspend fun setNewPrice(newInstrument: InstrumentUpdate) {
         val currentModel = modelFlow.value
         modelFlow.emit(
-            currentModel.copy(
-                tickers = currentModel.tickers.editIf(
-                    { it.symbol == newInstrument.symbol },
-                    {
-                        val priceFormatted = decimalFormatter.formatAdjustPrecision(newInstrument.price, it.precision)
-                        val postFormatPrecision = decimalFormatter.calcValuePrecision(newInstrument.price, it.precision)
-                        it.copy(
-                            price = newInstrument.price.setScale(postFormatPrecision, RoundingMode.HALF_EVEN),
-                            priceFormatted = priceFormatted
-                        )
-                    }
-                )
+            currentModel.editIf(
+                { it.symbol == newInstrument.symbol },
+                {
+                    val priceFormatted = decimalFormatter.formatAdjustPrecision(newInstrument.price, it.precision)
+                    val postFormatPrecision = decimalFormatter.calcValuePrecision(newInstrument.price, it.precision)
+                    it.copy(
+                        price = newInstrument.price.setScale(postFormatPrecision, RoundingMode.HALF_EVEN),
+                        priceFormatted = priceFormatted
+                    )
+                }
             )
         )
     }
 
-    fun addTicker(instrument: InstrumentPickerItem) {
+    fun addTicker(instrument: InstrumentPickerUiModel) {
         scope.launch {
             addInstrument(instrument)
             tickerRepository.subscribe(instrument.symbol)
@@ -93,23 +87,21 @@ class TickerViewModel(
         }
     }
 
-    private suspend fun addInstrument(instrument: InstrumentPickerItem) {
+    private suspend fun addInstrument(instrument: InstrumentPickerUiModel) {
         val currentModel = modelFlow.value
         modelFlow.emit(
-            currentModel.copy(
-                tickers = currentModel.tickers.toMutableList()
-                    .apply {
-                        add(
-                            ObservingInstrumentItem(
-                                instrument.name,
-                                instrument.symbol,
-                                instrument.precision,
-                                null,
-                                PRICE_LOADING
-                            )
+            currentModel.toMutableList()
+                .apply {
+                    add(
+                        InstrumentUiModel(
+                            instrument.name,
+                            instrument.symbol,
+                            instrument.precision,
+                            null,
+                            PRICE_LOADING
                         )
-                    }
-            )
+                    )
+                }
         )
     }
 
@@ -123,7 +115,7 @@ class TickerViewModel(
 
     private suspend fun saveTickers() {
         settingsRepository.setUserInstruments(
-            modelFlow.value.tickers.map {
+            modelFlow.value.map {
                 UserInstrument(it.name, it.symbol, it.precision)
             }
         )
@@ -131,20 +123,16 @@ class TickerViewModel(
 
     private suspend fun removeInstrument(symbol: String) {
         val currentModel = modelFlow.value
-        modelFlow.emit(
-            currentModel.copy(
-                tickers = currentModel.tickers.filter { it.symbol != symbol }
-            )
-        )
+        modelFlow.emit(currentModel.filter { it.symbol != symbol })
     }
 
-    suspend fun getAvailableInstruments(): Deferred<List<InstrumentPickerItem>?> =
+    suspend fun getAvailableInstruments(): Deferred<List<InstrumentPickerUiModel>?> =
         scope.async {
             tickerRepository.getInstrumentList()
                 ?.asSequence()
                 ?.map { instrument ->
                     with(instrument) {
-                        InstrumentPickerItem(
+                        InstrumentPickerUiModel(
                             name = name,
                             symbol = symbol,
                             baseAsset = baseAsset,

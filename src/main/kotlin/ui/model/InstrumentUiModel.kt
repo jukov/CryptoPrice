@@ -3,7 +3,7 @@ package ui.model
 
 import java.math.BigDecimal
 
-data class ObservingInstrumentItem(
+data class InstrumentUiModel(
     val name: String,
     val symbol: String,
     val precision: Int,

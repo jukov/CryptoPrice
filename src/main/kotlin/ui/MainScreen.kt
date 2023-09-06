@@ -5,8 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
 import org.slf4j.Logger
-import ui.model.ObservingInstrumentItem
-import ui.model.ObservingInstrumentsModel
+import ui.model.InstrumentUiModel
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.GridLayout
@@ -74,15 +73,15 @@ class MainScreen(
         }
     }
 
-    private fun setTickers(model: ObservingInstrumentsModel) {
-        if (model.tickers.isEmpty()) {
+    private fun setTickers(model: List<InstrumentUiModel>) {
+        if (model.isEmpty()) {
             frame.contentPane.remove(tickerPanel)
             frame.contentPane.add(hintLabel, BorderLayout.CENTER)
         } else {
             frame.contentPane.remove(hintLabel)
             frame.contentPane.add(tickerPanel, BorderLayout.CENTER)
 
-            model.tickers.forEach { instrument ->
+            model.forEach { instrument ->
                 if (tickerScreens.containsKey(instrument.symbol)) {
                     tickerScreens[instrument.symbol]?.setPrice(instrument.price, instrument.priceFormatted)
                 } else {
@@ -90,7 +89,7 @@ class MainScreen(
                 }
             }
 
-            tickerScreens.keys.minus(model.tickers.map { it.symbol }.toSet()).forEach {  removedSymbol ->
+            tickerScreens.keys.minus(model.map { it.symbol }.toSet()).forEach {  removedSymbol ->
                 removeTicker(removedSymbol)
             }
         }
@@ -115,7 +114,7 @@ class MainScreen(
         frame.isVisible = true
     }
 
-    private fun addTicker(instrument: ObservingInstrumentItem) {
+    private fun addTicker(instrument: InstrumentUiModel) {
         if (tickerScreens.size > MAX_TICKERS) return
         if (tickerScreens.containsKey(instrument.symbol)) return
 
