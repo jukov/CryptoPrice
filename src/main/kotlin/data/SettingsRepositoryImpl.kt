@@ -62,6 +62,6 @@ class SettingsRepositoryImpl(
     }
 
     companion object {
-        private const val FILE_NAME = "settings.xml"
+        private const val FILE_NAME = "settings.json"
     }
 }
