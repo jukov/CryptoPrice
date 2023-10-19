@@ -149,7 +149,7 @@ class TickerRepositoryImplTest {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun `reconnect`() = runTest {
+    fun `reconnect after failure`() = runTest {
         every { wsHelper.isWebsocketStarted } returns false
         coEvery { wsHelper.connect(any(), captureLambda(), captureLambda()) } coAnswers {
             secondArg<suspend (String) -> Unit>().invoke(testTickerResponse)
