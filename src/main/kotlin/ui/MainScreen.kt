@@ -3,7 +3,7 @@ package ui
 import Constants.MAX_COLUMNS
 import Constants.MAX_TICKERS
 import Constants.NEW_TICKER_SIZE
-import Constants.TICKER_SIZE
+import Constants.TICKER_SIZE_DEFAULT
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -147,9 +147,9 @@ class MainScreen(
 
         hintLabel.alignmentX = Component.CENTER_ALIGNMENT
 
-        frame.setSize(TICKER_SIZE, TICKER_SIZE + NEW_TICKER_SIZE)
+        frame.setSize(TICKER_SIZE_DEFAULT, TICKER_SIZE_DEFAULT + NEW_TICKER_SIZE)
         frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
-        frame.isResizable = false
+        frame.isResizable = true
         frame.setLocationRelativeTo(null)
         frame.title = "Crypto Price"
         frame.isVisible = true
@@ -171,17 +171,22 @@ class MainScreen(
 
     private fun adjustGrid() {
         if (tickerScreens.isEmpty()) {
-            frame.setSize(TICKER_SIZE, TICKER_SIZE + 50)
+            frame.setSize(TICKER_SIZE_DEFAULT, TICKER_SIZE_DEFAULT + 50)
 
             logger.info("Grid adjusted to hint (0 tickers)")
         } else {
+            val prevColumn = tickerLayout.columns
+            val prevRow = tickerLayout.rows
+            val tileWidth = frame.width / prevColumn
+            val tileHeight = (frame.height - NEW_TICKER_SIZE) / prevRow
             val column = tickerScreens.size.coerceAtMost(MAX_COLUMNS)
             val row = 1 + (tickerScreens.size - 1) / MAX_COLUMNS
+
 
             tickerLayout.columns = column
             tickerLayout.rows = row
 
-            frame.setSize(column * TICKER_SIZE, NEW_TICKER_SIZE + row * TICKER_SIZE)
+            frame.setSize(column * tileWidth, NEW_TICKER_SIZE + row * tileHeight)
             logger.info("Grid adjusted to $row rows and $column columns")
         }
     }
