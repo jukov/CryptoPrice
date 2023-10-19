@@ -6,9 +6,11 @@ import domain.model.InstrumentUpdate
 import domain.model.UserInstrument
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import ui.model.InstrumentPickerUiModel
 import ui.model.InstrumentUiModel
+import ui.model.UiEvent
 import util.DecimalFormatter
 import util.editIf
 import java.math.RoundingMode
@@ -41,8 +43,11 @@ class TickerViewModel(
     }
 
     private val modelFlow = MutableStateFlow<List<InstrumentUiModel>>(emptyList())
+    private val eventFlow = MutableSharedFlow<UiEvent>()
 
     fun observeTickers(): Flow<List<InstrumentUiModel>> = modelFlow
+
+    fun observeEvents(): Flow<UiEvent> = eventFlow
 
     private suspend fun restoreUserInstruments(userInstruments: List<UserInstrument>) {
         val currentModel = modelFlow.value
@@ -91,8 +96,14 @@ class TickerViewModel(
 
     private suspend fun addInstrument(instrument: InstrumentPickerUiModel): Boolean {
         val currentModel = modelFlow.value
-        if (currentModel.size >= maxTickers) return false
-        if (currentModel.any { it.symbol == instrument.symbol }) return false
+        if (currentModel.size >= maxTickers) {
+            eventFlow.emit(UiEvent.MaxLimitReached)
+            return false
+        }
+        if (currentModel.any { it.symbol == instrument.symbol }) {
+            eventFlow.emit(UiEvent.TickerAlreadyAdded(instrument.name))
+            return false
+        }
         modelFlow.emit(
             currentModel.toMutableList()
                 .apply {

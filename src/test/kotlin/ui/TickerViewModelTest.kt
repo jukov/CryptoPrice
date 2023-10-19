@@ -14,9 +14,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import ui.model.InstrumentPickerUiModel
 import ui.model.InstrumentUiModel
+import ui.model.UiEvent
 import util.DecimalFormatter
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -69,6 +71,12 @@ class TickerViewModelTest {
                 updates += it
             }
         }
+        val events = ArrayList<UiEvent>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.observeEvents().collect {
+                events += it
+            }
+        }
 
         viewModel.addTicker(testPickerUiModel)
 
@@ -80,6 +88,8 @@ class TickerViewModelTest {
 
         assertEquals(2, updates.size)
         assertEquals(listOf(testInstrumentUiModel), updates.last())
+        assertEquals(1, events.size)
+        assertTrue(events[0] is UiEvent.TickerAlreadyAdded)
 
         coVerify(exactly = 1) { tickerRepository.subscribe(testPickerUiModel.symbol) }
         coVerify(exactly = 1) { settingsRepository.setUserInstruments(listOf(testUserInstrument)) }
@@ -98,6 +108,12 @@ class TickerViewModelTest {
                 updates += it
             }
         }
+        val events = ArrayList<UiEvent>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.observeEvents().collect {
+                events += it
+            }
+        }
 
         viewModel.addTicker(testPickerUiModel)
         testScheduler.advanceTimeBy(10L)
@@ -110,6 +126,8 @@ class TickerViewModelTest {
 
         assertEquals(4, updates.size)
         assertEquals(listOf(testInstrumentUiModel, testInstrumentUiModel2, testInstrumentUiModel3), updates.last())
+        assertEquals(1, events.size)
+        assertEquals(listOf(UiEvent.MaxLimitReached), events)
 
         coVerify(exactly = 1) { tickerRepository.subscribe(testPickerUiModel.symbol) }
         coVerify(exactly = 1) { tickerRepository.subscribe(testPickerUiModel2.symbol) }

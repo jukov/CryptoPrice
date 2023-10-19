@@ -1,6 +1,7 @@
 package ui
 
 import Constants.MAX_COLUMNS
+import Constants.MAX_TICKERS
 import Constants.NEW_TICKER_SIZE
 import Constants.TICKER_SIZE
 import kotlinx.coroutines.CoroutineScope
@@ -9,6 +10,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
 import org.slf4j.Logger
 import ui.model.InstrumentUiModel
+import ui.model.UiEvent
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.GridLayout
@@ -42,6 +44,28 @@ class MainScreen(
         scope.launch {
             viewModel.observeTickers().collect { model ->
                 setTickers(model)
+            }
+        }
+        scope.launch {
+            viewModel.observeEvents().collect { event ->
+                handleEvent(event)
+            }
+        }
+    }
+
+    private fun handleEvent(event: UiEvent) {
+        when (event) {
+            UiEvent.MaxLimitReached -> {
+                JOptionPane.showMessageDialog(frame,
+                    "Can't add more than $MAX_TICKERS tickers.",
+                    "Max limit reached",
+                    JOptionPane.WARNING_MESSAGE);
+            }
+            is UiEvent.TickerAlreadyAdded -> {
+                JOptionPane.showMessageDialog(frame,
+                    "Ticker ${event.tickerName} already added.",
+                    "Ticker already added",
+                    JOptionPane.WARNING_MESSAGE);
             }
         }
     }
