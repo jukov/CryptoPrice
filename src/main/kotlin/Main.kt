@@ -7,10 +7,13 @@ import ui.MainScreen
 import ui.TickerViewModel
 import util.DecimalFormatterImpl
 import util.Logging
+import java.time.Duration
 
 fun main() {
     val wsHttpClient = HttpClient {
-        install(WebSockets)
+        install(WebSockets) {
+            pingInterval = Duration.ofSeconds(15).toMillis()
+        }
     }
     val httpClient = HttpClient()
     val dataConfig = DataConfig(

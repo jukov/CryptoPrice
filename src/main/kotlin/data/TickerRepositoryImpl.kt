@@ -23,9 +23,13 @@ class TickerRepositoryImpl(
 
     private val instrumentUpdateFlow = MutableSharedFlow<InstrumentUpdate>()
 
+    private val errorFlow = MutableSharedFlow<Throwable>()
+
     private val observingSymbols = HashSet<String>()
 
     override suspend fun observeInstrumentUpdates(): Flow<InstrumentUpdate> = instrumentUpdateFlow
+
+    override suspend fun observeErrors(): Flow<Throwable> = errorFlow
 
     override suspend fun subscribe(symbol: String) {
         subscribe(listOf(symbol))
@@ -42,10 +46,14 @@ class TickerRepositoryImpl(
 
         if (!websocket.isWebsocketStarted) {
             websocket.connect(
-                "${dataConfig.wsUrl}ws/${streams.joinToString(separator = "/")}"
-            ) { message ->
-                handleMessage(message)
-            }
+                "${dataConfig.wsUrl}ws/${streams.joinToString(separator = "/")}",
+                messageListener = { message ->
+                    handleMessage(message)
+                },
+                errorListener = { throwable ->
+                    errorFlow.emit(throwable)
+                }
+            )
         } else {
             websocket.send(
                 json.encodeToString(
@@ -57,6 +65,27 @@ class TickerRepositoryImpl(
                 )
             )
         }
+    }
+
+    override suspend fun reconnect() {
+        val streams = observingSymbols
+            .map { "${it.lowercase()}@ticker" }
+
+        if (streams.isEmpty()) return
+
+        if (websocket.isWebsocketStarted) {
+            error("Already connected")
+        }
+
+        websocket.connect(
+            "${dataConfig.wsUrl}ws/${streams.joinToString(separator = "/")}",
+            messageListener = { message ->
+                handleMessage(message)
+            },
+            errorListener = { throwable ->
+                errorFlow.emit(throwable)
+            }
+        )
     }
 
     override suspend fun unsubscribe(symbol: String) {

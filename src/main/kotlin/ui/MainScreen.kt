@@ -59,13 +59,47 @@ class MainScreen(
                 JOptionPane.showMessageDialog(frame,
                     "Can't add more than $MAX_TICKERS tickers.",
                     "Max limit reached",
-                    JOptionPane.WARNING_MESSAGE);
+                    JOptionPane.WARNING_MESSAGE)
             }
             is UiEvent.TickerAlreadyAdded -> {
                 JOptionPane.showMessageDialog(frame,
                     "Ticker ${event.tickerName} already added.",
                     "Ticker already added",
-                    JOptionPane.WARNING_MESSAGE);
+                    JOptionPane.WARNING_MESSAGE)
+            }
+            UiEvent.InstrumentListError -> {
+                val result = JOptionPane.showOptionDialog(
+                    frame,
+                    "An error occurred while fetching instruments. Reload?",
+                    "Error",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE,
+                    null,
+                    arrayOf("Yes, reload", "No, exit"),
+                    "Yes, reload"
+                )
+                if (result == 0) {
+                    getAvailableInstruments()
+                } else {
+                    exitProcess(0)
+                }
+            }
+            UiEvent.TickerObserveError -> {
+                val result = JOptionPane.showOptionDialog(
+                    frame,
+                    "An error occurred while observing prices. Reconnect?",
+                    "Error",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE,
+                    null,
+                    arrayOf("Yes, reconnect", "No, exit"),
+                    "Yes, reconnect"
+                )
+                if (result == 0) {
+                    viewModel.reconnect()
+                } else {
+                    exitProcess(0)
+                }
             }
         }
     }
@@ -75,28 +109,8 @@ class MainScreen(
             viewModel.getAvailableInstruments().await().let { instruments ->
                 if (!instruments.isNullOrEmpty()) {
                     newTickerScreen.setAvailableInstruments(instruments)
-                } else {
-                    handleAvailableInstrumentsError()
                 }
             }
-        }
-    }
-
-    private fun handleAvailableInstrumentsError() {
-        val result = JOptionPane.showOptionDialog(
-            frame,
-            "An error occurred while fetching instruments. Reload?",
-            "Error",
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.WARNING_MESSAGE,
-            null,
-            arrayOf("Yes, reload", "No, exit"),
-            "Yes, reload"
-        )
-        if (result == 0) {
-            getAvailableInstruments()
-        } else {
-            exitProcess(0)
         }
     }
 

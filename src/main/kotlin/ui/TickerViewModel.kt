@@ -33,6 +33,12 @@ class TickerViewModel(
         }
 
         scope.launch {
+            tickerRepository.observeErrors().collect { _ ->
+                eventFlow.emit(UiEvent.TickerObserveError)
+            }
+        }
+
+        scope.launch {
             val userInstruments = settingsRepository.getUserInstruments()
             if (userInstruments == null) {
                 restoreUserInstruments(SAMPLE_INSTRUMENTS)
@@ -147,7 +153,7 @@ class TickerViewModel(
 
     suspend fun getAvailableInstruments(): Deferred<List<InstrumentPickerUiModel>?> =
         scope.async {
-            tickerRepository.getInstrumentList()
+            val instruments = tickerRepository.getInstrumentList()
                 ?.asSequence()
                 ?.map { instrument ->
                     with(instrument) {
@@ -163,7 +169,19 @@ class TickerViewModel(
                 ?.filter { it.quoteAsset == "USDT" }
                 ?.sortedBy { it.name }
                 ?.toList()
+
+            if (instruments == null) {
+                eventFlow.emit(UiEvent.InstrumentListError)
+            }
+
+            instruments
         }
+
+    fun reconnect() {
+        scope.launch {
+            tickerRepository.reconnect()
+        }
+    }
 
 
     companion object {

@@ -17,7 +17,11 @@ class WSHelper(
     val isWebsocketStarted: Boolean
         get() = webSocketSession != null
 
-    suspend fun connect(url: String,  messageListener: suspend (String) -> Unit) {
+    suspend fun connect(
+        url: String,
+        messageListener: suspend (String) -> Unit,
+        errorListener: suspend (Throwable) -> Unit
+    ) {
         if (webSocketSession != null) error("WebSocket already opened")
 
         withContext(Dispatchers.IO) {
@@ -37,7 +41,9 @@ class WSHelper(
                         }
                     }
                 } catch (e: Exception) {
-                    logger.error("Error while receiving", e)
+                    webSocketSession = null
+                    logger.error("Websocket error", e)
+                    errorListener(e)
                 }
             }
         }

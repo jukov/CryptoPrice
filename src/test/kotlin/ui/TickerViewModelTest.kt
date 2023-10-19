@@ -183,12 +183,14 @@ class TickerViewModelTest {
     @Test
     fun `init`() = runTest {
         coEvery { tickerRepository.observeInstrumentUpdates() } returns MutableSharedFlow()
+        coEvery { tickerRepository.observeErrors() } returns MutableSharedFlow()
         coEvery { settingsRepository.getUserInstruments() } returns emptyList()
         coEvery { tickerRepository.subscribe(emptyList()) } returns Unit
 
         viewModel.init()
 
         coVerify(exactly = 1) { tickerRepository.observeInstrumentUpdates() }
+        coVerify(exactly = 1) { tickerRepository.observeErrors() }
         coVerify(exactly = 1) { settingsRepository.getUserInstruments() }
         coVerify(exactly = 1) { tickerRepository.subscribe(emptyList()) }
     }
@@ -196,6 +198,7 @@ class TickerViewModelTest {
     @Test
     fun `init without user instruments`() = runTest {
         coEvery { tickerRepository.observeInstrumentUpdates() } returns MutableSharedFlow()
+        coEvery { tickerRepository.observeErrors() } returns MutableSharedFlow()
         coEvery { settingsRepository.getUserInstruments() } returns null
         coEvery { tickerRepository.subscribe(TickerViewModel.SAMPLE_INSTRUMENTS.map { it.symbol }) } returns Unit
 
@@ -219,6 +222,7 @@ class TickerViewModelTest {
     @Test
     fun `init with user instruments`() = runTest {
         coEvery { tickerRepository.observeInstrumentUpdates() } returns MutableSharedFlow()
+        coEvery { tickerRepository.observeErrors() } returns MutableSharedFlow()
         coEvery { settingsRepository.getUserInstruments() } returns listOf(testUserInstrument)
         coEvery { tickerRepository.subscribe(listOf(testUserInstrument.symbol)) } returns Unit
 
@@ -244,6 +248,7 @@ class TickerViewModelTest {
         val updateSource = MutableSharedFlow<InstrumentUpdate>()
 
         coEvery { tickerRepository.observeInstrumentUpdates() } returns updateSource
+        coEvery { tickerRepository.observeErrors() } returns MutableSharedFlow()
         coEvery { settingsRepository.getUserInstruments() } returns listOf(testUserInstrument)
         coEvery { tickerRepository.subscribe(listOf(testUserInstrument.symbol)) } returns Unit
         coEvery { decimalFormatter.formatAdjustPrecision(testPrice, any()) } returns testPriceFormatted
