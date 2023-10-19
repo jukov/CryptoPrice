@@ -1,10 +1,15 @@
 package ui
 
-import domain.SettingsRepository
-import domain.TickerRepository
-import domain.model.Instrument
-import domain.model.InstrumentUpdate
-import domain.model.UserInstrument
+import info.jukov.domain.SettingsRepository
+import info.jukov.domain.TickerRepository
+import info.jukov.domain.model.Instrument
+import info.jukov.domain.model.InstrumentUpdate
+import info.jukov.domain.model.UserInstrument
+import info.jukov.ui.TickerViewModel
+import info.jukov.ui.model.InstrumentPickerUiModel
+import info.jukov.ui.model.InstrumentUiModel
+import info.jukov.ui.model.UiEvent
+import info.jukov.util.DecimalFormatter
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -16,10 +21,6 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import ui.model.InstrumentPickerUiModel
-import ui.model.InstrumentUiModel
-import ui.model.UiEvent
-import util.DecimalFormatter
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TickerViewModelTest {
@@ -312,7 +313,7 @@ class TickerViewModelTest {
                     symbol,
                     precision,
                     null,
-                    TickerViewModel.PRICE_LOADING
+                    info.jukov.ui.TickerViewModel.PRICE_LOADING
                 )
             }
         }

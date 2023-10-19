@@ -1,7 +1,11 @@
 package data
 
-import domain.model.Instrument
-import domain.model.InstrumentUpdate
+import info.jukov.data.DataConfig
+import info.jukov.data.RestHelper
+import info.jukov.data.TickerRepositoryImpl
+import info.jukov.data.WSHelper
+import info.jukov.domain.model.Instrument
+import info.jukov.domain.model.InstrumentUpdate
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
