@@ -1,5 +1,8 @@
 package ui
 
+import Constants.MAX_COLUMNS
+import Constants.NEW_TICKER_SIZE
+import Constants.TICKER_SIZE
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -115,7 +118,6 @@ class MainScreen(
     }
 
     private fun addTicker(instrument: InstrumentUiModel) {
-        if (tickerScreens.size > MAX_TICKERS) return
         if (tickerScreens.containsKey(instrument.symbol)) return
 
         val ticker = TickerScreen(instrument.name, instrument.symbol, viewModel::removeTicker)
@@ -152,13 +154,5 @@ class MainScreen(
         tickerPanel.remove(ticker.component)
         adjustGrid()
         tickerPanel.revalidate()
-    }
-
-    companion object {
-        private const val MAX_ROWS = 3
-        private const val MAX_COLUMNS = 4
-        private const val MAX_TICKERS = MAX_ROWS * MAX_COLUMNS
-        private const val TICKER_SIZE = 220
-        private const val NEW_TICKER_SIZE = 60
     }
 }

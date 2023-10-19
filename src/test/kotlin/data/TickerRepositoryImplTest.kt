@@ -73,6 +73,20 @@ class TickerRepositoryImplTest {
         coVerify(exactly = 1) { wsHelper.send("{\"id\":1,\"method\":\"SUBSCRIBE\",\"params\":[\"${testInstrument2.lowercase()}@ticker\"]}") }
     }
 
+    @Test
+    fun `subscribe same ticker twice`() = runTest {
+        every { wsHelper.isWebsocketStarted } returns false
+        coEvery { wsHelper.connect(any(), any()) } returns Unit
+        coEvery { wsHelper.send(any()) } returns Unit
+
+        repository.subscribe(testInstrument)
+
+        every { wsHelper.isWebsocketStarted } returns true
+
+        repository.subscribe(testInstrument)
+
+        coVerify(exactly = 1) { wsHelper.connect("${dataConfig.wsUrl}ws/${testInstrument.lowercase()}@ticker", any()) }
+    }
 
     @Test
     fun `subscribe twice and unsubscribe`() = runTest {

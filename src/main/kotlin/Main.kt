@@ -41,7 +41,8 @@ fun main() {
             settingsRepository = SettingsRepositoryImpl(
                 logger = Logging,
                 json = json
-            )
+            ),
+            Constants.MAX_TICKERS
         )
     )
 }

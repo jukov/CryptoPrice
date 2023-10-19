@@ -32,9 +32,13 @@ class TickerRepositoryImpl(
     }
 
     override suspend fun subscribe(symbols: List<String>) {
-        observingSymbols += symbols
+        val streams = symbols
+            .filterNot { observingSymbols.contains(it) }
+            .map { "${it.lowercase()}@ticker" }
 
-        val streams = symbols.map { "${it.lowercase()}@ticker" }
+        if (streams.isEmpty()) return
+
+        observingSymbols += symbols
 
         if (!websocket.isWebsocketStarted) {
             websocket.connect(

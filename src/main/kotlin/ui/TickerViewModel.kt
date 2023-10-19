@@ -17,7 +17,8 @@ class TickerViewModel(
     dispatcher: CoroutineDispatcher,
     private val decimalFormatter: DecimalFormatter,
     private val tickerRepository: TickerRepository,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val maxTickers: Int
 ) {
 
     private var scope = CoroutineScope(dispatcher)
@@ -81,14 +82,17 @@ class TickerViewModel(
 
     fun addTicker(instrument: InstrumentPickerUiModel) {
         scope.launch {
-            addInstrument(instrument)
-            tickerRepository.subscribe(instrument.symbol)
-            saveTickers()
+            if (addInstrument(instrument)) {
+                tickerRepository.subscribe(instrument.symbol)
+                saveTickers()
+            }
         }
     }
 
-    private suspend fun addInstrument(instrument: InstrumentPickerUiModel) {
+    private suspend fun addInstrument(instrument: InstrumentPickerUiModel): Boolean {
         val currentModel = modelFlow.value
+        if (currentModel.size >= maxTickers) return false
+        if (currentModel.any { it.symbol == instrument.symbol }) return false
         modelFlow.emit(
             currentModel.toMutableList()
                 .apply {
@@ -103,13 +107,15 @@ class TickerViewModel(
                     )
                 }
         )
+        return true
     }
 
     fun removeTicker(symbol: String) {
         scope.launch {
-            removeInstrument(symbol)
-            tickerRepository.unsubscribe(symbol)
-            saveTickers()
+            if (removeInstrument(symbol)) {
+                tickerRepository.unsubscribe(symbol)
+                saveTickers()
+            }
         }
     }
 
@@ -121,9 +127,11 @@ class TickerViewModel(
         )
     }
 
-    private suspend fun removeInstrument(symbol: String) {
+    private suspend fun removeInstrument(symbol: String): Boolean {
         val currentModel = modelFlow.value
+        if (currentModel.none { it.symbol == symbol }) return false
         modelFlow.emit(currentModel.filter { it.symbol != symbol })
+        return true
     }
 
     suspend fun getAvailableInstruments(): Deferred<List<InstrumentPickerUiModel>?> =

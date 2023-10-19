@@ -27,7 +27,13 @@ class TickerViewModelTest {
     private val settingsRepository = mockk<SettingsRepository>()
 
     private val viewModel =
-        TickerViewModel(UnconfinedTestDispatcher(), decimalFormatter, tickerRepository, settingsRepository)
+        TickerViewModel(
+            dispatcher = UnconfinedTestDispatcher(),
+            decimalFormatter = decimalFormatter,
+            tickerRepository = tickerRepository,
+            settingsRepository = settingsRepository,
+            maxTickers = 3
+        )
 
     @Test
     fun `add ticker`() = runTest {
@@ -53,6 +59,68 @@ class TickerViewModelTest {
     }
 
     @Test
+    fun `add same ticker twice`() = runTest {
+        coEvery { tickerRepository.subscribe(testPickerUiModel.symbol) } returns Unit
+        coEvery { settingsRepository.setUserInstruments(listOf(testUserInstrument)) } returns Unit
+
+        val updates = ArrayList<List<InstrumentUiModel>>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.observeTickers().collect {
+                updates += it
+            }
+        }
+
+        viewModel.addTicker(testPickerUiModel)
+
+        testScheduler.advanceTimeBy(10L)
+
+        viewModel.addTicker(testPickerUiModel)
+
+        testScheduler.advanceTimeBy(10L)
+
+        assertEquals(2, updates.size)
+        assertEquals(listOf(testInstrumentUiModel), updates.last())
+
+        coVerify(exactly = 1) { tickerRepository.subscribe(testPickerUiModel.symbol) }
+        coVerify(exactly = 1) { settingsRepository.setUserInstruments(listOf(testUserInstrument)) }
+    }
+
+    @Test
+    fun `add tickers after max count`() = runTest {
+        coEvery { tickerRepository.subscribe(testSymbol) } returns Unit
+        coEvery { tickerRepository.subscribe(testSymbol2) } returns Unit
+        coEvery { tickerRepository.subscribe(testSymbol3) } returns Unit
+        coEvery { settingsRepository.setUserInstruments(any()) } returns Unit
+
+        val updates = ArrayList<List<InstrumentUiModel>>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.observeTickers().collect {
+                updates += it
+            }
+        }
+
+        viewModel.addTicker(testPickerUiModel)
+        testScheduler.advanceTimeBy(10L)
+        viewModel.addTicker(testPickerUiModel2)
+        testScheduler.advanceTimeBy(10L)
+        viewModel.addTicker(testPickerUiModel3)
+        testScheduler.advanceTimeBy(10L)
+        viewModel.addTicker(testPickerUiModel4)
+        testScheduler.advanceTimeBy(10L)
+
+        assertEquals(4, updates.size)
+        assertEquals(listOf(testInstrumentUiModel, testInstrumentUiModel2, testInstrumentUiModel3), updates.last())
+
+        coVerify(exactly = 1) { tickerRepository.subscribe(testPickerUiModel.symbol) }
+        coVerify(exactly = 1) { tickerRepository.subscribe(testPickerUiModel2.symbol) }
+        coVerify(exactly = 1) { tickerRepository.subscribe(testPickerUiModel3.symbol) }
+        coVerify(exactly = 0) { tickerRepository.subscribe(testPickerUiModel4.symbol) }
+        coVerify(exactly = 1) { settingsRepository.setUserInstruments(listOf(testUserInstrument)) }
+        coVerify(exactly = 1) { settingsRepository.setUserInstruments(listOf(testUserInstrument, testUserInstrument2)) }
+        coVerify(exactly = 1) { settingsRepository.setUserInstruments(listOf(testUserInstrument, testUserInstrument2, testUserInstrument3)) }
+    }
+
+    @Test
     fun `remove ticker`() = runTest {
         coEvery { tickerRepository.subscribe(testPickerUiModel.symbol) } returns Unit
         coEvery { tickerRepository.unsubscribe(testPickerUiModel.symbol) } returns Unit
@@ -60,6 +128,29 @@ class TickerViewModelTest {
         coEvery { settingsRepository.setUserInstruments(emptyList()) } returns Unit
 
         viewModel.addTicker(testPickerUiModel)
+
+        testScheduler.advanceTimeBy(10L)
+
+        viewModel.removeTicker(testPickerUiModel.symbol)
+
+        testScheduler.advanceTimeBy(10L)
+
+        coVerify(exactly = 1) { tickerRepository.unsubscribe(testPickerUiModel.symbol) }
+        coVerify(exactly = 1) { settingsRepository.setUserInstruments(emptyList()) }
+    }
+
+    @Test
+    fun `remove same ticker twice`() = runTest {
+        coEvery { tickerRepository.subscribe(testPickerUiModel.symbol) } returns Unit
+        coEvery { tickerRepository.unsubscribe(testPickerUiModel.symbol) } returns Unit
+        coEvery { settingsRepository.setUserInstruments(listOf(testUserInstrument)) } returns Unit
+        coEvery { settingsRepository.setUserInstruments(emptyList()) } returns Unit
+
+        viewModel.addTicker(testPickerUiModel)
+
+        testScheduler.advanceTimeBy(10L)
+
+        viewModel.removeTicker(testPickerUiModel.symbol)
 
         testScheduler.advanceTimeBy(10L)
 
@@ -173,32 +264,25 @@ class TickerViewModelTest {
 
     companion object {
         const val testSymbol = "DOGEUSDT"
+        const val testSymbol2 = "PEPEUSDT"
+        const val testSymbol3 = "BTCUSDT"
+        const val testSymbol4 = "ADAUSDT"
         val testPrice = "123.0".toBigDecimal()
         const val testPriceFormatted = "123.0"
         const val testPrecision = 1
-        val testUserInstrument = UserInstrument(
-            "DOGE/USDT",
-            testSymbol,
-            8
-        )
-        val testInstrumentUiModel = InstrumentUiModel(
-            "DOGE/USDT",
-            testSymbol,
-            8,
-            null,
-            TickerViewModel.Companion.PRICE_LOADING
-        )
-        val testPickerUiModel = InstrumentPickerUiModel(
-            "DOGE/USDT",
-            "DOGE",
-            "USDT",
-            testSymbol,
-            8
-        )
-        val testUpdate = InstrumentUpdate(
-            testSymbol,
-            testPrice
-        )
+        val testUserInstrument = UserInstrument("DOGE/USDT", testSymbol, 8)
+        val testUserInstrument2 = UserInstrument("PEPE/USDT", testSymbol2, 8)
+        val testUserInstrument3 = UserInstrument("BTC/USDT", testSymbol3, 8)
+        val testUserInstrument4 = UserInstrument("ADA/USDT", testSymbol4, 8)
+        val testInstrumentUiModel = InstrumentUiModel("DOGE/USDT", testSymbol, 8, null, TickerViewModel.Companion.PRICE_LOADING)
+        val testInstrumentUiModel2 = InstrumentUiModel("PEPE/USDT", testSymbol2, 8, null, TickerViewModel.Companion.PRICE_LOADING)
+        val testInstrumentUiModel3 = InstrumentUiModel("BTC/USDT", testSymbol3, 8, null, TickerViewModel.Companion.PRICE_LOADING)
+        val testInstrumentUiModel4 = InstrumentUiModel("ADA/USDT", testSymbol4, 8, null, TickerViewModel.Companion.PRICE_LOADING)
+        val testPickerUiModel = InstrumentPickerUiModel("DOGE/USDT", "DOGE", "USDT", testSymbol, 8)
+        val testPickerUiModel2 = InstrumentPickerUiModel("PEPE/USDT", "PEPE", "USDT", testSymbol2, 8)
+        val testPickerUiModel3 = InstrumentPickerUiModel("BTC/USDT", "BTC", "USDT", testSymbol3, 8)
+        val testPickerUiModel4 = InstrumentPickerUiModel("ADA/USDT", "ADA", "USDT", testSymbol4, 8)
+        val testUpdate = InstrumentUpdate(testSymbol, testPrice)
 
         val sampleUiModels = TickerViewModel.SAMPLE_INSTRUMENTS.map {
             with(it) {
